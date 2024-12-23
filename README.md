@@ -9,7 +9,7 @@ Pap Smear Cell Classification Challenge (PS3C)
 Will train the model and save the best model to `ckpt/` folder.
 
 
-## Predicting
+## Submission
 ```bash
 ./predict.sh
 ```
@@ -29,3 +29,4 @@ If no ckpt file is provided, will use the pretrained model and save the results 
 ## TODO
 - [ ] Add Validation set / Cross-validation
 - [ ] Use WandB to log training and prediction
+- [ ] Add batch size for prediction script
