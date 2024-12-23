@@ -23,3 +23,9 @@ Also, will save the predicted results to the folder containing the ckpt file.
 ```
 Will predict on the training set and save the results to the folder containing the ckpt file.
 If no ckpt file is provided, will use the pretrained model and save the results to the folder with the name of the pretrained model.
+
+
+
+## TODO
+- [ ] Add Validation set / Cross-validation
+- [ ] Use WandB to log training and prediction
