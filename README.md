@@ -28,5 +28,5 @@ If no ckpt file is provided, will use the pretrained model and save the results 
 
 ## TODO
 - [ ] Add Validation set / Cross-validation
-- [ ] Use WandB to log training and prediction
+- [ ] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [ ] Add batch size for prediction script
