@@ -180,6 +180,7 @@ def main():
     parser.add_argument('--num_epochs', type=int, default=10)
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--merge_bothcells', action='store_true')
+    parser.add_argument('--export_each_epoch', action='store_true')
     args = parser.parse_args()
 
     ### Create random generator collection and set seed for reproducibility
@@ -220,9 +221,9 @@ def main():
     
     ### Create model save path with configuration
     model_name = f"best_model_{args.model_name}_{'3class' if args.merge_bothcells else '4class'}.pth"
-    ckpt_path = Path(f"ckpt/{args.model_name}")
-    ckpt_path.mkdir(parents=True, exist_ok=True)
-    ckpt_path = ckpt_path / model_name
+    ckpt_dir_path = Path(f"ckpt/{args.model_name}")
+    ckpt_dir_path.mkdir(parents=True, exist_ok=True)
+    ckpt_path = ckpt_dir_path / model_name
     
     ### Loss and optimizer
     criterion = nn.CrossEntropyLoss()
@@ -250,12 +251,19 @@ def main():
             best_loss = train_loss
             torch.save(model.state_dict(), ckpt_path)
             print(f'Saved best model as {ckpt_path}')
+
+        ### Save each epoch model for analysis
+        if args.export_each_epoch:
+            model_name = f"model_{epoch+1}.pth"
+            temp_ckpt_path = ckpt_dir_path / model_name
+            torch.save(model.state_dict(), temp_ckpt_path)
+            print(f'Saved model as {temp_ckpt_path}')
     
     print("\nTraining completed!")
 
 
 if __name__ == '__main__':
-    main() 
+    main()
 
 
 # Train with bothcells merged with unhealthy (recommended)
