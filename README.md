@@ -2,6 +2,31 @@
 Pap Smear Cell Classification Challenge (PS3C) 
 
 
+## Data
+Download the data follow this [instructions](https://www.kaggle.com/competitions/pap-smear-cell-classification-challenge/data) and put it in the `data/` folder.
+The data should be organized as follows:
+```
+dataset
+│
+├── isbi2025-ps3c-test-dataset
+│   ├── isbi2025_ps3c_test_image_00001.png
+│   ├── isbi2025_ps3c_test_image_00002.png
+│   ├── ...
+│   ├── isbi2025_ps3c_test_image_18158.png
+│   └── isbi2025_ps3c_test_image_18159.png
+│
+├── isbi2025-ps3c-train-dataset
+│   ├── bothcells
+│   ├── healthy
+│   ├── rubbish
+│   └── unhealthy
+│
+└── pap-smear-cell-classification-challenge
+    ├── isbi2025-ps3c-test-dataset.csv
+    └── isbi2025-ps3c-train-dataset.csv
+```
+
+
 ## Training
 ```bash
 ./train.sh
@@ -30,3 +55,18 @@ If no ckpt file is provided, will use the pretrained model and save the results 
 - [ ] Add Validation set / Cross-validation
 - [ ] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [ ] Add batch size for prediction script
+
+
+<!-- ## Reproducibility -->
+<!-- ```bash
+nvidia-smi
+nvcc --version
+python --version
+pip freeze > requirements.txt
+conda env export > environment.yml
+lsb_release -a
+cat /etc/os-release
+nvidia-smi --query-gpu=gpu_name,driver_version,memory.total --format=csv
+cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
+dpkg -l | grep cudnn
+``` -->
