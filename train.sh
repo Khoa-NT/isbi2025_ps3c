@@ -29,10 +29,11 @@
 ### Base EVA-02
 python train.py \
 --merge_bothcells \
---batch_size 50 \
+--batch_size 52 \
 --num_epochs 20 \
 --lr 1e-5 \
---model_name eva02_base_patch14_448
+--model_name eva02_base_patch14_448 \
+--export_each_epoch
 
 
 ### ------------------------------------------- EfficientNet-B0 ------------------------------------------- ###
