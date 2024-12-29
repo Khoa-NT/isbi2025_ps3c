@@ -57,16 +57,5 @@ If no ckpt file is provided, will use the pretrained model and save the results 
 - [ ] Add batch size for prediction script
 
 
-<!-- ## Reproducibility -->
-<!-- ```bash
-nvidia-smi
-nvcc --version
-python --version
-pip freeze > requirements.txt
-conda env export > environment.yml
-lsb_release -a
-cat /etc/os-release
-nvidia-smi --query-gpu=gpu_name,driver_version,memory.total --format=csv
-cat /usr/local/cuda/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
-dpkg -l | grep cudnn
-``` -->
+## Docker
+Khoa's environment is available in [docker/khoa/khoa.md](docker/khoa/khoa.md).
