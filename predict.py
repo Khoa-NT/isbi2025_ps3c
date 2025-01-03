@@ -6,7 +6,6 @@ import numpy as np
 from pathlib import Path
 
 import torch
-from torchvision import transforms
 from PIL import Image
 from tqdm import tqdm
 
@@ -16,7 +15,14 @@ from train import PapSmearClassifier
 
 ###------ Prediction Function -------###
 def predict(model, image_path, transform, device):
-    """Predict single image"""
+    """Predict single image
+    
+    Args:
+        model (nn.Module): The trained model
+        image_path (str): Path to the image
+        transform (transforms): Image transformations
+        device (torch.device): Device to run prediction on
+    """
     image = Image.open(image_path).convert('RGB')
     image = transform(image).unsqueeze(0).to(device)
     
@@ -32,8 +38,8 @@ def predict(model, image_path, transform, device):
 def main():
     ### Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/khoa/workspace/Project/isbi2025_ps3c/dataset/isbi2025-ps3c-test-dataset')
-    parser.add_argument('--csv_path', type=str, default='/home/khoa/workspace/Project/isbi2025_ps3c/dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv')
+    parser.add_argument('--data_dir', type=str, default='dataset/isbi2025-ps3c-test-dataset')
+    parser.add_argument('--csv_path', type=str, default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv')
     parser.add_argument('--model_name', type=str, default='efficientnet_b0')
     parser.add_argument('--load_ckpt', type=str, default='')
     parser.add_argument('--merge_bothcells', action='store_true')
@@ -59,7 +65,7 @@ def main():
     
     ### Class mapping based on configuration
     if args.merge_bothcells:
-        idx_to_class = {0: 'healthy', 1: 'unhealthy', 2: 'rubbish'}
+        idx_to_class = {0: 'healthy', 1: 'unhealthy', 2: 'rubbish'} ### bothcells is merged into unhealthy
     else:
         idx_to_class = {0: 'healthy', 1: 'unhealthy', 2: 'bothcells', 3: 'rubbish'}
     

@@ -171,7 +171,7 @@ def main():
     ### TODO: Add validation set
     ### TODO: Use Hydra to manage configuration
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_dir', type=str, default='/home/khoa/workspace/Project/isbi2025_ps3c/dataset/isbi2025-ps3c-train-dataset')
+    parser.add_argument('--data_dir', type=str, default='dataset/isbi2025-ps3c-train-dataset')
     parser.add_argument('--model_name', type=str, default='efficientnet_b0')
     parser.add_argument('--load_ckpt', type=str, default='')
     parser.add_argument('--random_seed', type=int, default=42)
