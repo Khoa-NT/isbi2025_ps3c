@@ -52,9 +52,13 @@ If no ckpt file is provided, will use the pretrained model and save the results 
 
 
 ## TODO
-- [ ] Add Validation set / Cross-validation
-- [ ] Use [WandB](https://wandb.ai/site) to log training and prediction
+- [ ] Extracting features from the model
 - [ ] Add batch size for prediction script
+- [ ] Use [WandB](https://wandb.ai/site) to log training and prediction
+- [ ] Add Validation set / Cross-validation
+- [ ] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
+- [ ] Docker
+
 
 
 ## Docker
