@@ -3,7 +3,7 @@
 import argparse
 import pandas as pd
 from pathlib import Path
-import os
+
 
 import torch
 from PIL import Image
@@ -12,31 +12,63 @@ from torch.utils.data import Dataset, DataLoader
 
 import timm
 from train import PapSmearClassifier
+from utils.pytorch_utils import seed_worker, SeedAll
 
 
 ###------ Prediction Function -------###
-def predict_batch(model, images, transform, device):
-    """Predict batch of images
+def prediction(model, dataloader, df, idx_to_class, label_col, device,
+               dataset_type, ckpt_path=None, pretrained_dir=None):
+    """Run prediction on the dataset and export results
     
     Args:
-        model (nn.Module): The trained model
-        images (List[PIL.Image]): List of PIL images
-        transform (transforms): Image transformations
+        model (nn.Module): The model to use for prediction
+        dataloader (DataLoader): DataLoader containing the dataset
+        df (pd.DataFrame): DataFrame to store predictions
+        idx_to_class (dict): Mapping from index to class names
+        label_col (str): Column name for predictions
         device (torch.device): Device to run prediction on
-        
-    Returns:
-        tuple: Predictions and probabilities for the batch
+        dataset_type (str): Either 'train' or 'test'
+        ckpt_path (Path, optional): Path to checkpoint. Defaults to None
+        pretrained_dir (Path, optional): Directory for pretrained model. Defaults to None
     """
-    ### Transform all images
-    batch = torch.stack([transform(img) for img in images])
-    batch = batch.to(device)
-    
+    ### ------------------------------- Predicting ------------------------------- ###
     with torch.no_grad():
-        output = model(batch)
-        probs = torch.softmax(output, dim=1)
-        preds = output.argmax(dim=1)
-    
-    return preds, probs
+        for images, indices in tqdm(dataloader, desc='Predicting', ncols=120):
+            images = images.to(device)
+            
+            ### Get predictions
+            outputs = model(images)
+            probs = torch.softmax(outputs, dim=1)
+            preds = outputs.argmax(dim=1)
+            
+            ### Update dataframe with predictions
+            for i, (pred, prob) in enumerate(zip(preds, probs)):
+                idx = indices[i].item()
+                df.at[idx, label_col] = idx_to_class[pred.item()]
+                for class_idx, class_name in idx_to_class.items():
+                    df.at[idx, f'prob_{class_name}'] = prob[class_idx].cpu().item()
+
+    ### ------------------------------- Export predictions ------------------------------- ###
+    if dataset_type == 'train':
+        ### Save predictions with all columns
+        if ckpt_path:
+            pred_path = ckpt_path.parent / "train_predictions.csv"
+        else:
+            pred_path = pretrained_dir / f"train_predictions_PreTrained_{model.model_name}.csv"
+        df.to_csv(pred_path, index=False)
+        print(f"\nPredictions saved to {pred_path=}")
+    else:
+        ### Save predictions with specific columns (no capitalization)
+        submission_path = Path("submission")
+        submission_path.mkdir(parents=True, exist_ok=True)
+        submission_path = submission_path / f"predictions_{ckpt_path.stem}.csv"
+        df.to_csv(submission_path, index=False, columns=['image_name', 'label'])
+        print(f"\nPredictions saved to {submission_path=}")
+
+        ### Save predictions with all columns to ckpt_path
+        pred_path = ckpt_path.parent / "predictions.csv"
+        df.to_csv(pred_path, index=False)
+        print(f"\nPredictions saved to {pred_path=}")
 
 
 ###------ Dataset Class -------###
@@ -76,10 +108,9 @@ class InferenceDataset(Dataset):
             image = Image.open(img_path).convert('RGB')
             if self.transform:
                 image = self.transform(image)
+
         except Exception as e:
-            print(f"Error loading image {img_path}: {e}")
-            ### Return a blank image in case of error
-            image = torch.zeros((3, 224, 224))
+            raise ValueError(f"Error loading image {img_path}: {e}")
             
         return image, idx
 
@@ -89,23 +120,36 @@ def main():
     ### Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset', type=str, choices=['train', 'test'], default='test',
-                       help='Choose between training or test dataset (default: test)')
+                        help='Choose between training or test dataset (default: test)')
+    parser.add_argument('--infer_mode', type=str, choices=['prediction', 'extract_features'],
+                        default='prediction', help='Inference mode (default: prediction)')
+    parser.add_argument('--extract_mode', type=str, choices=['pooled', 'pooled_all', 'classifier_token'], 
+                        default='pooled', help='Extract mode (default: pooled). '
+                       'pooled: extract pooled features from the last layer. '
+                       'pooled_all: extract all features from the last layer included classifier token.'
+                       'classifier_token: extract features from the classifier token.'
+                       )
     parser.add_argument('--data_dir_train', type=str, 
-                       default='dataset/isbi2025-ps3c-train-dataset')
+                        default='dataset/isbi2025-ps3c-train-dataset')
     parser.add_argument('--data_dir_test', type=str, 
-                       default='dataset/isbi2025-ps3c-test-dataset')
+                        default='dataset/isbi2025-ps3c-test-dataset')
     parser.add_argument('--csv_path_train', type=str,
-                       default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv')
+                        default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv')
     parser.add_argument('--csv_path_test', type=str,
-                       default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv')
+                        default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv')
     parser.add_argument('--model_name', type=str, default='efficientnet_b0')
     parser.add_argument('--load_ckpt', type=str, default='')
     parser.add_argument('--merge_bothcells', action='store_true')
     parser.add_argument('--batch_size', type=int, default=32,
-                       help='Batch size for inference (default: 32)')
+                        help='Batch size for inference (default: 32)')
     parser.add_argument('--num_workers', type=int, default=8,
-                       help='Number of workers for data loading (default: 8)')
+                        help='Number of workers for data loading (default: 8)')
+    parser.add_argument('--random_seed', type=int, default=42)
     args = parser.parse_args()
+
+
+    ### Create random generator collection and set seed for reproducibility
+    rng = SeedAll(args.random_seed)
 
     ### Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -144,11 +188,12 @@ def main():
     csv_path = args.csv_path_train if args.dataset == 'train' else args.csv_path_test
     df = pd.read_csv(csv_path)
     
-    ### Create probability columns
-    label_col = 'pred_label' if args.dataset == 'train' else 'label'
-    df[label_col] = ''
-    for class_name in idx_to_class.values():
-        df[f'prob_{class_name}'] = 0.0
+    ### Create probability columns only for prediction mode
+    if args.infer_mode == 'prediction':
+        label_col = 'pred_label' if args.dataset == 'train' else 'label'
+        df[label_col] = ''
+        for class_name in idx_to_class.values():
+            df[f'prob_{class_name}'] = 0.0
     
     ### Create dataset and dataloader
     dataset = InferenceDataset(
@@ -162,51 +207,80 @@ def main():
         dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=args.num_workers,  ### Use user-specified number of workers
-        pin_memory=True
+        num_workers=args.num_workers,
+        pin_memory=True,
+        worker_init_fn=seed_worker,
+        generator=rng.torch_generator
     )
 
-    ### Predict
-    model.eval()
-    with torch.no_grad():
-        for images, indices in tqdm(dataloader, desc='Predicting', ncols=120):
-            images = images.to(device)
-            
-            ### Get predictions
-            outputs = model(images)
-            probs = torch.softmax(outputs, dim=1)
-            preds = outputs.argmax(dim=1)
-            
-            ### Update dataframe with predictions
-            for i, (pred, prob) in enumerate(zip(preds, probs)):
-                idx = indices[i].item()
-                df.at[idx, label_col] = idx_to_class[pred.item()]
-                for class_idx, class_name in idx_to_class.items():
-                    df.at[idx, f'prob_{class_name}'] = prob[class_idx].cpu().item()
+    ### Run inference based on mode
+    if args.infer_mode == 'prediction':
+        prediction(
+            model=model,
+            dataloader=dataloader,
+            df=df,
+            idx_to_class=idx_to_class,
+            label_col=label_col,
+            device=device,
+            dataset_type=args.dataset,
+            ckpt_path=ckpt_path if args.load_ckpt else None,
+            pretrained_dir=pretrained_dir if not args.load_ckpt else None
+        )
 
-    ### ------------------------------- Export predictions ------------------------------- ###
-    if args.dataset == 'train':
-        ### Save predictions with all columns
+    elif args.infer_mode == 'extract_features':
+        ### ------------------------------- Preprocessing extract mode ------------------------------- ###
+        ### Extract pooled features based on architecture
+        if args.extract_mode == 'pooled':
+            ### Set the classifier to Identity
+            ### https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/eva.py#L553
+            model.model.reset_classifier(0)
+
+            ### The extract function is the forward function
+            extract_func = model
+
+        ### Extract all features from the last layer included classifier token
+        ### In this code (https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/eva.py#L688),
+        ### the global pooling operation skips the classifier token. Therefore, we need to extract
+        ### features from the last layer that includes the classifier token.
+        elif args.extract_mode == 'pooled_all':
+            def extract_func(x):
+                features = model.model.forward_features(x) ### (batch_size, token_len, num_features)
+                return features.mean(dim=1) ### (batch_size, num_features)
+
+        ### Extract features from the classifier token
+        elif args.extract_mode == 'classifier_token':
+            def extract_func(x):
+                features = model.model.forward_features(x) ### (batch_size, token_len, num_features)
+                return features[:, 0, :] ### (batch_size, num_features)
+
+        ### ------------------------------- Extracting features ------------------------------- ###
+        with torch.no_grad():
+            for images, indices in tqdm(dataloader, desc='Extracting features', ncols=120):
+                images = images.to(device)
+                
+                ### Get features
+                features = extract_func(images) ### (batch_size, num_features)
+                features = features.detach().clone().cpu().numpy()
+            
+                ### Store features in the dataframe based on indices
+                df_features = pd.DataFrame(features, columns=[f'feature_{i}' for i in range(features.shape[1])])
+                df.loc[indices.tolist(), df_features.columns] = df_features.values
+
+        ### ------------------------------- Export features ------------------------------- ###
+        feature_dir = Path("extracted_features") / args.model_name
+        feature_dir.mkdir(parents=True, exist_ok=True)
+        
         if args.load_ckpt:
-            pred_path = ckpt_path.parent / "train_predictions.csv"
+            file_path = feature_dir / f"{args.dataset}_{args.extract_mode}_features_ckpt_{ckpt_path.stem}.csv"
         else:
-            pred_path = pretrained_dir / f"train_predictions_PreTrained_{args.model_name}.csv"
-        df.to_csv(pred_path, index=False)
-        print(f"\nPredictions saved to {pred_path=}")
-    else:
-        ### Save predictions with specific columns (no capitalization)
-        submission_path = Path("submission")
-        submission_path.mkdir(parents=True, exist_ok=True)
-        submission_path = submission_path / f"predictions_{ckpt_path.stem}.csv"
-        df.to_csv(submission_path, index=False, columns=['image_name', 'label'])
-        print(f"\nPredictions saved to {submission_path=}")
+            file_path = feature_dir / f"{args.dataset}_{args.extract_mode}_features_PreTrained_{args.model_name}.csv"
+        
+        df.to_csv(file_path, index=False, columns=['image_name'] + [f'feature_{i}' for i in range(features.shape[1])])
+        print(f"\nFeatures saved to {file_path=}")
 
-        ### Save predictions with all columns to ckpt_path
-        pred_path = ckpt_path.parent / "predictions.csv"
-        df.to_csv(pred_path, index=False)
-        print(f"\nPredictions saved to {pred_path=}")
 
 
 if __name__ == '__main__':
-    ### Check the predict.sh file for example usage
+    ### Run python infer.py --help for more information
+    ### Check the predict.sh & extract_features.sh files for example usage
     main()

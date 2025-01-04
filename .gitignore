@@ -167,3 +167,4 @@ cython_debug/
 submission/*
 ckpt/*
 dataset/*
+extracted_features/*

@@ -12,5 +12,6 @@ python infer.py \
 # --dataset test \
 # --merge_bothcells \
 # --model_name efficientnet_b0 \
-# --load_ckpt ckpt/efficientnet_b0/best_model_efficientnet_b0_3class.pth
+# --load_ckpt ckpt/efficientnet_b0/best_model_efficientnet_b0_3class.pth \
+# --batch_size 512 --num_workers 32 ### 35GB GPU + 118GB RAM
 

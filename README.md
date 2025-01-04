@@ -49,10 +49,16 @@ Also, will save the predicted results to the folder containing the ckpt file.
 Will predict on the training set and save the results to the folder containing the ckpt file.
 If no ckpt file is provided, will use the pretrained model and save the results to the folder with the name of the pretrained model.
 
+### Extracting features from the model
+```bash
+./extract_features.sh
+```
+Will extract features from the model and save the results to `extracted_features/{model_name}` folder.
+If no ckpt file is provided, will use the pretrained model and save the results to the folder with the name of the pretrained model.
 
 
 ## TODO
-- [ ] Extracting features from the model
+- [x] Extracting features from the model
 - [x] Add batch size for prediction script
 - [ ] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [ ] Add Validation set / Cross-validation
