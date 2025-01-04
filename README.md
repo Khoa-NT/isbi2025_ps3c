@@ -56,6 +56,15 @@ If no ckpt file is provided, will use the pretrained model and save the results 
 Will extract features from the model and save the results to `extracted_features/{model_name}` folder.
 If no ckpt file is provided, will use the pretrained model and save the results to the folder with the name of the pretrained model.
 
+Extract modes:
++ pooled: Extract features from the pooled output of the model. Usually pooled without the classifier token.
++ pooled_all: Extract features from all outputs of the model. Including the classifier token.
++ classifier_token: Extract features from the classifier token.
+
+#### Extract features:
++ eva02_base_patch14_448: [Google Drive link (Temporary)](https://drive.google.com/drive/u/5/folders/1tFFUHJ8rU1nnDzqKT7Fnzs2BJ9P6egPW)
+
+
 
 ## TODO
 - [x] Extracting features from the model
