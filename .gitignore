@@ -168,3 +168,4 @@ submission/*
 ckpt/*
 dataset/*
 extracted_features/*
+wandb/*

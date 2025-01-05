@@ -17,6 +17,8 @@ import timm
 from sklearn.metrics import classification_report
 from tqdm import tqdm
 
+import wandb
+
 from utils.pytorch_utils import seed_worker, SeedAll
 
 
@@ -129,15 +131,21 @@ def train_epoch(model, dataloader, criterion, optimizer, device, merge_bothcells
         ### Update progress bar
         correct = sum(1 for x, y in zip(all_predictions, all_labels) if x == y)
         total = len(all_labels)
-        pbar.set_postfix({'loss': f'{running_loss/total:.3f}', 
-                          'acc': f'{100.*correct/total:.2f}%'})
+        acc = 100.*correct/total
+        pbar.set_postfix({'loss': f'{running_loss/total:.5f}', 
+                          'acc': f'{acc:.5f}%'})
     
     ### Generate classification report with correct target names
     report = classification_report(all_labels, all_predictions, 
                                    target_names=target_names,
-                                   digits=4)
+                                   digits=5)
     
-    return running_loss/len(dataloader), report
+    ### We can reuse the `acc` variable to calculate accuracy if we want to save some computation
+    ### instead of re-calculating the accuracy from scratch:
+    ### running_acc = 100.*sum(1 for x, y in zip(all_predictions, all_labels) if x == y)/len(all_labels)
+    running_acc = acc
+    
+    return running_loss/len(dataloader), running_acc, report
 
 
 ###------ Validation Function -------###
@@ -181,7 +189,24 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--merge_bothcells', action='store_true')
     parser.add_argument('--export_each_epoch', action='store_true')
+    parser.add_argument('--notes', type=str, default='')
     args = parser.parse_args()
+
+    ### Initialize wandb
+    wandb_run = wandb.init(
+        entity="GUGC_ISBI2025_PS3C",
+        project="isbi2025-ps3c",
+        name=f"{args.model_name}_{'3class' if args.merge_bothcells else '4class'}", ### Feel free to change the name
+        notes=args.notes, ### Note for the experiment
+        tags=[args.model_name, '3class' if args.merge_bothcells else '4class'], ### Tags for the experiment
+        config=args, ### Get config from argparse
+        config_exclude_keys=["notes"] ### Exclude `args.notes` from wandb config to prevent redundancy
+    )
+    wandb_run.define_metric("train/loss", summary="min", step_metric="epoch")
+    wandb_run.define_metric("train/acc", summary="max", step_metric="epoch")
+    wandb_run.define_metric("val/loss", summary="min", step_metric="epoch")
+    wandb_run.define_metric("val/acc", summary="max", step_metric="epoch")
+
 
     ### Create random generator collection and set seed for reproducibility
     rng = SeedAll(args.random_seed)
@@ -236,13 +261,27 @@ def main():
         print(f'\nEpoch {epoch+1}/{args.num_epochs}')
         
         ### Pass merge_bothcells to train_epoch
-        train_loss, train_report = train_epoch(model, train_loader, criterion, 
+        train_loss, train_acc, train_report = train_epoch(model, train_loader, criterion, 
                                                optimizer, device, 
                                                merge_bothcells=args.merge_bothcells)
         
+        ### Evaluate model on validation set
+        ### TODO: Uncomment this when we have a validation set
+        # val_loss, val_acc = validate(model, val_loader, criterion, device)
+
         print(f'Training Loss: {train_loss:.4f}')
-        print('\nClassification Report:')
+        print(f'Training Accuracy: {train_acc:.2f}%')
+        print('\nClassification Training Report:')
         print(train_report)
+        
+        wandb_run.log({
+            "train/loss": train_loss,
+            "train/acc": train_acc,
+
+            ### TODO: Uncomment this when we have a validation set
+            # "val/loss": val_loss,
+            # "val/acc": val_acc,
+        })
         
         scheduler.step(train_loss)
         
@@ -250,14 +289,14 @@ def main():
         if train_loss < best_loss:
             best_loss = train_loss
             torch.save(model.state_dict(), ckpt_path)
-            print(f'Saved best model as {ckpt_path}')
+            print(f'Saved best model as {ckpt_path} at epoch {epoch+1}')
 
         ### Save each epoch model for analysis
         if args.export_each_epoch:
             model_name = f"model_{epoch+1}.pth"
             temp_ckpt_path = ckpt_dir_path / model_name
             torch.save(model.state_dict(), temp_ckpt_path)
-            print(f'Saved model as {temp_ckpt_path}')
+            print(f'Saved model as {temp_ckpt_path} at epoch {epoch+1}')
     
     print("\nTraining completed!")
 

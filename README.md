@@ -69,7 +69,7 @@ Extract modes:
 ## TODO
 - [x] Extracting features from the model
 - [x] Add batch size for prediction script
-- [ ] Use [WandB](https://wandb.ai/site) to log training and prediction
+- [x] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [ ] Add Validation set / Cross-validation
 - [ ] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
 - [ ] Docker

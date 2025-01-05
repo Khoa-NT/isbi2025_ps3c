@@ -8,7 +8,8 @@
 ### Optional parameters
 # --export_each_epoch: Export each epoch model for analysis. For example:
 #                      python train.py --merge_bothcells --num_epochs 100 --export_each_epoch
-
+# --notes: Add notes for the experiment. For example:
+#          python train.py --merge_bothcells --num_epochs 100 --notes "This is a test experiment"
 
 ### ------------------------------------------- EVA-02 ------------------------------------------- ###
 ### https://github.com/baaivision/EVA/tree/master/EVA-02
@@ -33,8 +34,9 @@ python train.py \
 --batch_size 32 \
 --num_epochs 20 \
 --lr 1e-5 \
---model_name eva02_base_patch14_448
-
+--model_name eva02_base_patch14_448 \
+--export_each_epoch \
+--notes "This is a test experiment"
 
 ### ------------------------------------------- EfficientNet-B0 ------------------------------------------- ###
 # python train.py \
