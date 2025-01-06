@@ -275,6 +275,7 @@ def main():
         print(train_report)
         
         wandb_run.log({
+            "epoch": epoch + 1,
             "train/loss": train_loss,
             "train/acc": train_acc,
 
