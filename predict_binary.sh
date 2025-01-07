@@ -1,0 +1,38 @@
+### ------------------------------------------- EfficientNet-B0 ------------------------------------------- ###
+### Stage 1: Predict rubbish vs all other classes
+python infer_binary.py \
+--dataset test \
+--class_0 rubbish \
+--class_1 healthy unhealthy bothcells \
+--model_name efficientnet_b0 \
+--load_ckpt ckpt/efficientnet_b0/binary_rubbish_vs_healthy+unhealthy+bothcells/best_model_efficientnet_b0_binary_rubbish_vs_healthy+unhealthy+bothcells.pth \
+--batch_size 512 --num_workers 32
+
+### Stage 2: Predict healthy vs unhealthy+bothcells
+python infer_binary.py \
+--dataset test \
+--class_0 healthy \
+--class_1 unhealthy bothcells \
+--model_name efficientnet_b0 \
+--load_ckpt ckpt/efficientnet_b0/binary_healthy_vs_unhealthy+bothcells/best_model_efficientnet_b0_binary_healthy_vs_unhealthy+bothcells.pth \
+--batch_size 512 --num_workers 32
+
+
+### ------------------------------------------- EVA-02 ------------------------------------------- ###
+### Example 1: Predict rubbish vs all other classes
+# python infer_binary.py \
+# --dataset test \
+# --class_0 rubbish \
+# --class_1 healthy unhealthy bothcells \
+# --model_name eva02_base_patch14_448 \
+# --load_ckpt ckpt/eva02_base_patch14_448/best_model_eva02_base_patch14_448_binary_rubbish_vs_healthy+unhealthy+bothcells.pth \
+# --batch_size 512 --num_workers 32
+
+### Example 2: Predict healthy vs all other classes
+# python infer_binary.py \
+# --dataset test \
+# --class_0 healthy \
+# --class_1 unhealthy bothcells rubbish \
+# --model_name eva02_base_patch14_448 \
+# --load_ckpt ckpt/eva02_base_patch14_448/best_model_eva02_base_patch14_448_binary_healthy_vs_unhealthy+bothcells+rubbish.pth \
+# --batch_size 512 --num_workers 32 
