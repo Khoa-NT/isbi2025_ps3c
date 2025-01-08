@@ -28,18 +28,41 @@ dataset
 
 
 ## Training
+### Multi-class classification
 ```bash
 ./train.sh
 ```
 Will train the model and save the best model to `ckpt/` folder.
 
+### Binary classification
+```bash
+./train_binary.sh
+```
+Will train the model and save the best model to `ckpt/` folder.
+Check `train_binary.sh` for example usage.
+
 
 ## Submission
+### Multi-class classification
 ```bash
 ./predict.sh
 ```
 Will predict on the test set and save the results for submission to `submission/` folder.
 Also, will save the predicted results to the folder containing the ckpt file.
+Check `predict.sh` for example usage.
+
+### Binary classification
+```bash
+./predict_binary.sh
+```
+Will predict on the test set and save the results for submission to `submission/` folder.
+Also, will save the predicted results to the folder containing the ckpt file.
+Can run on multiple models at once and merge the results.
+Check `predict_binary.sh` for example usage.
+
+After predicting all binary models, run `merge_binary_predictions.py` to merge the results.
+Check `merge_predictions.sh` & `merge_binary_predictions.py` for example usage.
+
 
 ## Analysis
 ### Predicting on training set
@@ -66,12 +89,13 @@ Extract modes:
 
 
 
+
 ## TODO
 - [x] Extracting features from the model
 - [x] Add batch size for prediction script
 - [x] Use [WandB](https://wandb.ai/site) to log training and prediction
+- [x] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
 - [ ] Add Validation set / Cross-validation
-- [ ] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
 - [ ] Docker
 
 
