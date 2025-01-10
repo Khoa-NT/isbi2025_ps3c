@@ -1,8 +1,13 @@
 model_name="eva02_base_patch14_448"
-load_ckpt="ckpt/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class.pth"
 
+### Load the ckpt
+### Uncomment to use the pretrained model. Remember to uncomment the `--load_ckpt $load_ckpt \` below too.
+# load_ckpt="ckpt/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class.pth"
+
+### Dataset
 datasets=("train" "test")
 
+### Extract mode
 extract_mode="pooled" # pooled, pooled_all, classifier_token
 extract_modes=("pooled" "pooled_all" "classifier_token")
 
@@ -16,7 +21,7 @@ extract_modes=("pooled" "pooled_all" "classifier_token")
 # --merge_bothcells \
 # --model_name $model_name \
 # --load_ckpt $load_ckpt \
-# --batch_size 256 --num_workers 32 ### 35GB GPU + 118GB RAM
+# --batch_size 512 --num_workers 32 ### 35GB GPU + 118GB RAM
 
 
 ### Extract features with specific mode for all datasets 
@@ -29,7 +34,7 @@ extract_modes=("pooled" "pooled_all" "classifier_token")
 #     --merge_bothcells \
 #     --model_name $model_name \
 #     --load_ckpt $load_ckpt \
-#     --batch_size 256 --num_workers 32 ### 35GB GPU + 118GB RAM
+#     --batch_size 512 --num_workers 32 ### 35GB GPU + 118GB RAM
 # done
 
 
@@ -43,7 +48,7 @@ for extract_mode in ${extract_modes[@]}; do
         --dataset $dataset \
         --merge_bothcells \
         --model_name $model_name \
-        --load_ckpt $load_ckpt \
-        --batch_size 256 --num_workers 32 ### 35GB GPU + 118GB RAM
+        # --load_ckpt $load_ckpt \
+        --batch_size 512 --num_workers 32 ### 35GB GPU + 118GB RAM
     done
 done

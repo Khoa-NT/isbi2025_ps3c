@@ -159,7 +159,7 @@ def main():
         ckpt_path = Path(args.load_ckpt)
         print(f"Loading checkpoint from {ckpt_path=}")
     else:
-        if args.dataset == 'test':
+        if args.dataset == 'test' and args.infer_mode == 'prediction':
             raise ValueError("Checkpoint must be provided for test set prediction")
         print(f"Using pretrained model {args.model_name=}")
         pretrained_dir = Path("ckpt") / args.model_name
@@ -267,12 +267,19 @@ def main():
                 df.loc[indices.tolist(), df_features.columns] = df_features.values
 
         ### ------------------------------- Export features ------------------------------- ###
-        feature_dir = Path("extracted_features") / args.model_name
-        feature_dir.mkdir(parents=True, exist_ok=True)
-        
         if args.load_ckpt:
+            ### Create feature directory
+            feature_dir = Path("extracted_features") / args.model_name / ckpt_path.stem
+            feature_dir.mkdir(parents=True, exist_ok=True)
+
+            ### Create feature file path
             file_path = feature_dir / f"{args.dataset}_{args.extract_mode}_features_ckpt_{ckpt_path.stem}.csv"
         else:
+            ### Create feature directory
+            feature_dir = Path("extracted_features") / args.model_name / "PreTrained"
+            feature_dir.mkdir(parents=True, exist_ok=True)
+
+            ### Create feature file path
             file_path = feature_dir / f"{args.dataset}_{args.extract_mode}_features_PreTrained_{args.model_name}.csv"
         
         df.to_csv(file_path, index=False, columns=['image_name'] + [f'feature_{i}' for i in range(features.shape[1])])
