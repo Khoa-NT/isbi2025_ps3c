@@ -98,10 +98,10 @@ Extract modes:
 
 
 | Model Combination | Test Result | Comment |
-|------------------|-------------|---------|
-| 1 + 2            | 0.84982     |  |
-| 3 + 2            | 0.85025     |  |
-| 3                | 0.84127     | 🤔 Get 0.84 with only submitting rubbish & healthy (without unhealthy & bothcells) |
+|:-----------------:|:-----------:|:---------|
+| 1 + 2             | 0.84982     |  |
+| 3 + 2             | 0.85025     |  |
+| 3                 | 0.84127     | 🤔 Get 0.84 with only submitting rubbish & healthy (without unhealthy & bothcells) |
 
 
 ## TODO
