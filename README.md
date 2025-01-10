@@ -51,18 +51,18 @@ Will predict on the test set and save the results for submission to `submission/
 Also, will save the predicted results to the folder containing the ckpt file.
 Check `predict.sh` for example usage.
 
-### Binary classification
+### Binary classification (☀️/🌙)
 ```bash
 ./predict_binary.sh
 ```
 Will predict on the test set and save the results for submission to `submission/` folder.
 Also, will save the predicted results to the folder containing the ckpt file.
-Can run on multiple models at once and merge the results.
 Check `predict_binary.sh` for example usage.
 
-After predicting all binary models, run `merge_binary_predictions.py` to merge the results.
-Check `merge_predictions.sh` & `merge_binary_predictions.py` for example usage.
-
+**Note:** After predicting all binary models, run `merge_binary_predictions.py` to merge the results in `submission/` folder. 
+For example, If we train the 1st model with **rubbish** vs **healthy_unhealthy_bothcells**, the predicted **healthy_unhealthy_bothcells** of the 1st model will be replaced by the prediction **(healthy vs unhealthy_bothcells)**  of the 2nd model.
++ Check `merge_predictions.sh` & `merge_binary_predictions.py` for example usage.
++ Check the [Binary Classification Result](#binary-classification-result) below to see the merged result.
 
 ## Analysis
 ### Predicting on training set
@@ -88,6 +88,20 @@ Extract modes:
 + eva02_base_patch14_448: Features from the model overfit on the training set.
 + PreTrained_eva02_base_patch14_448: Features from the ImageNet pretrained model.
 
+### Binary Classification Result
+| Name | Model 1 | Model 2 | Model 3 |
+|------|---------|---------|---------|
+| rubbish   | ☀️ | - | ☀️ |
+| healthy   | 🌙 | ☀️ | 🌙 |
+| unhealthy | 🌙 | 🌙 | - |
+| bothcells | 🌙 | 🌙 | - |
+
+
+| Model Combination | Test Result | Comment |
+|------------------|-------------|---------|
+| 1 + 2            | 0.84982     |  |
+| 3 + 2            | 0.85025     |  |
+| 3                | 0.84127     | 🤔 Get 0.84 with only submitting rubbish & healthy (without unhealthy & bothcells) |
 
 
 ## TODO
