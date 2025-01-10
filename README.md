@@ -90,7 +90,7 @@ Extract modes:
 
 ### Binary Classification Result
 | Name | Model 1 | Model 2 | Model 3 |
-|------|---------|---------|---------|
+|:----:|:-------:|:-------:|:-------:|
 | rubbish   | ☀️ | - | ☀️ |
 | healthy   | 🌙 | ☀️ | 🌙 |
 | unhealthy | 🌙 | 🌙 | - |
