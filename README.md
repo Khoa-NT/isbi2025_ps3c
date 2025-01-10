@@ -98,7 +98,10 @@ Extract modes:
 - [ ] Add Validation set / Cross-validation
 - [ ] Docker
 
+## Ideas
+- **Idea 1:** Remove confusing data by identifying the file names of False Positives (FP) and False Negatives (FN) and excluding them from the training set.
 
+- **Idea 2:** Since classifying unhealthy cases is key to success, assign a higher loss weight to misclassifications of unhealthy cases.
 
 ## Docker
 Khoa's environment is available in [docker/khoa/khoa.md](docker/khoa/khoa.md).
