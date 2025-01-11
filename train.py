@@ -28,10 +28,11 @@ class PapSmearDataset(Dataset):
     
     Args:
         data_dir (str): Root directory containing class folders
+        csv_path (str): Path to CSV file containing image paths and labels
         transform (callable, optional): Transform to be applied to images
         merge_bothcells (bool): Whether to merge bothcells class with unhealthy
     """
-    def __init__(self, data_dir, transform=None, merge_bothcells=True):
+    def __init__(self, data_dir, csv_path, transform=None, merge_bothcells=True):
         self.data_dir = Path(data_dir)
         self.transform = transform
         
@@ -51,14 +52,37 @@ class PapSmearDataset(Dataset):
                 'rubbish': 3
             }
         
-        ### Create list of (image_path, label) tuples
+        ### Read CSV file and create samples list
+        df = pd.read_csv(csv_path)
+        
+
+        ### ---------------- Calculate class weights ---------------- ###
+        ### Calculate class weights based on distribution
+        ### If merge_bothcells, combine bothcells count with unhealthy
+        label_counts = df['label'].value_counts()
+        if merge_bothcells and 'bothcells' in label_counts:
+            label_counts['unhealthy'] += label_counts['bothcells']
+            label_counts = label_counts.drop('bothcells')
+        
+        ### Calculate weights as (highest_count/each_count)
+        max_count = label_counts.max()
+        self.class_weights_dict = {label: max_count/count for label, count in label_counts.items()}
+    
+        ### Create weight tensor based on the class_weights_dict
+        self.class_weights = torch.zeros(len(self.class_weights_dict))
+        for class_name, class_idx in self.class_map.items():
+            if class_name in self.class_weights_dict:  ### Skip bothcells if merged
+                self.class_weights[class_idx] = self.class_weights_dict[class_name]
+        
+        
+        ### ---------------- Create list of (image_path, label) tuples ---------------- ###
+        ### Create list of (image_path, label) tuples from CSV
         self.samples = []
-        for class_name in self.class_map.keys():
-            class_dir = self.data_dir / class_name
-            if class_dir.exists():
-                for img_path in class_dir.iterdir():
-                    if img_path.suffix.lower() in ['.jpg', '.jpeg', '.png']:
-                        self.samples.append((img_path, class_name))
+        for _, row in df.iterrows():
+            if pd.notna(row['image_name']) and pd.notna(row['label']):
+                img_path = self.data_dir / row['label'] / f"{row['image_name']}"
+                if img_path.exists():
+                    self.samples.append((img_path, row['label']))
     
 
     def __len__(self):
@@ -175,9 +199,7 @@ def validate(model, dataloader, criterion, device):
 
 ###------ Main Function -------###
 def main():
-    ### Parse arguments
-    ### TODO: Add validation set
-    ### TODO: Use Hydra to manage configuration
+    ### ---------------- Parse arguments ---------------- ###
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='dataset/isbi2025-ps3c-train-dataset')
     parser.add_argument('--model_name', type=str, default='efficientnet_b0')
@@ -190,31 +212,40 @@ def main():
     parser.add_argument('--merge_bothcells', action='store_true')
     parser.add_argument('--export_each_epoch', action='store_true')
     parser.add_argument('--notes', type=str, default='')
+    parser.add_argument('--csv_path', type=str, 
+                       default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv',
+                       help='Path to CSV file containing image paths and labels')
+    parser.add_argument('--use_class_weights', action='store_true',
+                       help='Use class weights in loss function to handle class imbalance')
     args = parser.parse_args()
 
+    ### ---------------- Initialize wandb ---------------- ###
     ### Initialize wandb
     wandb_run = wandb.init(
         entity="GUGC_ISBI2025_PS3C",
         project="isbi2025-ps3c",
-        name=f"{args.model_name}_{'3class' if args.merge_bothcells else '4class'}", ### Feel free to change the name
-        notes=args.notes, ### Note for the experiment
-        tags=[args.model_name, '3class' if args.merge_bothcells else '4class'], ### Tags for the experiment
-        config=args, ### Get config from argparse
-        config_exclude_keys=["notes"] ### Exclude `args.notes` from wandb config to prevent redundancy
+        name=f"{args.model_name}_{'3class' if args.merge_bothcells else '4class'}"
+             f"{'_weighted' if args.use_class_weights else ''}", ### Added weighted tag
+        notes=args.notes,
+        tags=[args.model_name, 
+              '3class' if args.merge_bothcells else '4class',
+              'weighted' if args.use_class_weights else 'unweighted'], ### Added weighting tag
+        config=args,
+        config_exclude_keys=["notes"]
     )
     wandb_run.define_metric("train/loss", summary="min", step_metric="epoch")
     wandb_run.define_metric("train/acc", summary="max", step_metric="epoch")
     wandb_run.define_metric("val/loss", summary="min", step_metric="epoch")
     wandb_run.define_metric("val/acc", summary="max", step_metric="epoch")
 
-
+    ### ---------------- Intital setup ---------------- ###
     ### Create random generator collection and set seed for reproducibility
     rng = SeedAll(args.random_seed)
     
     ### Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    ### Create model
+    ### ---------------- Create model ---------------- ###
     num_classes = 3 if args.merge_bothcells else 4
     model = PapSmearClassifier(args.model_name, num_classes=num_classes)
     
@@ -229,13 +260,13 @@ def main():
     model = model.to(device)
     model.train()
 
-    ### Data transforms
+    ### ---------------- Create datasets ---------------- ###
     data_cfg = timm.data.resolve_data_config(model.pretrained_cfg)
     transform = timm.data.create_transform(**data_cfg)
     
-    ### Create datasets
     train_dataset = PapSmearDataset(
         data_dir=args.data_dir,
+        csv_path=args.csv_path,
         transform=transform,
         merge_bothcells=args.merge_bothcells
     )
@@ -244,18 +275,40 @@ def main():
                               shuffle=True, num_workers=args.num_workers,
                               worker_init_fn=seed_worker, generator=rng.torch_generator)
     
+    ### ---------------- Create model save path ---------------- ###
     ### Create model save path with configuration
-    model_name = f"best_model_{args.model_name}_{'3class' if args.merge_bothcells else '4class'}.pth"
-    ckpt_dir_path = Path(f"ckpt/{args.model_name}")
-    ckpt_dir_path.mkdir(parents=True, exist_ok=True)
-    ckpt_path = ckpt_dir_path / model_name
+    ckpt_name = f"best_model_{args.model_name}_{'3class' if args.merge_bothcells else '4class'}"
+    if args.use_class_weights:
+        ckpt_name += "_weighted"
+    ckpt_name += ".pth"
     
-    ### Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
+    ### Create base checkpoint directory
+    ckpt_dir_path = Path(f"ckpt/{args.model_name}")
+    
+    ### Create weighted subfolder if using class weights
+    if args.use_class_weights:
+        ckpt_dir_path = ckpt_dir_path / "use_class_weights"
+    
+    ### Create directories
+    ckpt_dir_path.mkdir(parents=True, exist_ok=True)
+    ckpt_path = ckpt_dir_path / ckpt_name
+    
+    ### ---------------- Loss function ---------------- ###
+    if args.use_class_weights:
+        class_weights = train_dataset.class_weights.to(device)
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+        print("\nUsing weighted CrossEntropyLoss with class weights:")
+        for class_name, weight in train_dataset.class_weights_dict.items():
+            print(f"{class_name}: {weight:.4f}")
+    else:
+        criterion = nn.CrossEntropyLoss()
+        print("\nUsing standard CrossEntropyLoss without class weights")
+    
+    ### ---------------- Optimizer ---------------- ###
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=0.05)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, factor=0.5)
     
-    ### Training loop
+    ### ---------------- Training loop ---------------- ###
     best_loss = float('inf')
     for epoch in range(args.num_epochs):
         print(f'\nEpoch {epoch+1}/{args.num_epochs}')
@@ -264,14 +317,16 @@ def main():
         train_loss, train_acc, train_report = train_epoch(model, train_loader, criterion, 
                                                optimizer, device, 
                                                merge_bothcells=args.merge_bothcells)
-        
-        ### Evaluate model on validation set
+        scheduler.step(train_loss)
+
+        ### ---------------- Evaluate model on validation set ---------------- ###
         ### TODO: Uncomment this when we have a validation set
         # val_loss, val_acc = validate(model, val_loader, criterion, device)
 
+        ### ---------------- Logging ---------------- ###
         print(f'Training Loss: {train_loss:.4f}')
         print(f'Training Accuracy: {train_acc:.2f}%')
-        print('\nClassification Training Report:')
+        print('Classification Training Report:')
         print(train_report)
         
         wandb_run.log({
@@ -283,19 +338,18 @@ def main():
             # "val/loss": val_loss,
             # "val/acc": val_acc,
         })
-        
-        scheduler.step(train_loss)
-        
+                
+        ### ---------------- Save best model ---------------- ###
         ### Save best model with configuration in filename
         if train_loss < best_loss:
             best_loss = train_loss
             torch.save(model.state_dict(), ckpt_path)
             print(f'Saved best model as {ckpt_path} at epoch {epoch+1}')
 
+        ### ---------------- Save each epoch model ---------------- ###
         ### Save each epoch model for analysis
         if args.export_each_epoch:
-            model_name = f"model_{epoch+1}.pth"
-            temp_ckpt_path = ckpt_dir_path / model_name
+            temp_ckpt_path = ckpt_dir_path / f"model_{epoch+1}.pth"
             torch.save(model.state_dict(), temp_ckpt_path)
             print(f'Saved model as {temp_ckpt_path} at epoch {epoch+1}')
     

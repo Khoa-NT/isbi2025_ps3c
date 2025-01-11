@@ -8,6 +8,8 @@
 ### Optional parameters
 # --export_each_epoch: Export each epoch model for analysis. For example:
 #                      python train.py --merge_bothcells --num_epochs 100 --export_each_epoch
+# --use_class_weights: Use class weights for training. For example:
+#                      python train.py --merge_bothcells --num_epochs 100 --use_class_weights
 # --notes: Add notes for the experiment. For example:
 #          python train.py --merge_bothcells --num_epochs 100 --notes "This is a test experiment"
 
@@ -32,11 +34,12 @@
 python train.py \
 --merge_bothcells \
 --batch_size 32 \
---num_epochs 20 \
+--num_epochs 10 \
 --lr 1e-5 \
 --model_name eva02_base_patch14_448 \
---export_each_epoch \
---notes "This is a test experiment"
+--use_class_weights \
+--notes "Training with class weights"
+
 
 ### ------------------------------------------- EfficientNet-B0 ------------------------------------------- ###
 # python train.py \
