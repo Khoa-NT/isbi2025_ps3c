@@ -109,7 +109,7 @@ Extract modes:
 - [x] Add batch size for prediction script
 - [x] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [x] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
-- [x] Add class weights to the loss function (Idea 1)
+- [x] Add class weights to the loss function (Idea 2)
 - [ ] Add Validation set / Cross-validation
 - [ ] Docker
 
