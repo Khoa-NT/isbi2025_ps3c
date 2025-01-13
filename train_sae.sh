@@ -1,0 +1,23 @@
+### Classifier token features
+classifier_token_train_path="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+classifier_token_test_path="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+### Pooled features
+pooled_features_train_path="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+pooled_features_test_path="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+### Pooled_all features
+pooled_all_features_train_path="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+pooled_all_features_test_path="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+### Example usage
+python train_sae.py \
+--csv_path_train $pooled_all_features_train_path \
+--csv_path_test $pooled_all_features_test_path \
+--hidden_dim_multiplier 2.0 \
+--batch_size 1024 \
+--num_workers 8 \
+--num_epochs 10000 \
+--learning_rate 1e-4 \
+--l1_coefficient 1e-3 \
+--notes "Training SAE pooled_all_features with 10000 epochs"

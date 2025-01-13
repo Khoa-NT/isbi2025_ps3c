@@ -110,6 +110,7 @@ Extract modes:
 - [x] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [x] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
 - [x] Add class weights to the loss function (Idea 2)
+- [x] Add SAE strategy: training and extracting SAE features from the extracted features (Classifier token, Pooled, Pooled_all)
 - [ ] Add Validation set / Cross-validation
 - [ ] Docker
 
