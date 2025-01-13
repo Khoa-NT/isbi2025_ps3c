@@ -31,23 +31,14 @@
 # --model_name eva02_large_patch14_448
 
 ### Base EVA-02
-# python train.py \
-# --merge_bothcells \
-# --batch_size 32 \
-# --num_epochs 10 \
-# --lr 1e-5 \
-# --model_name eva02_base_patch14_448 \
-# --notes "Training without class weights"
-
 python train.py \
 --merge_bothcells \
 --batch_size 32 \
 --num_epochs 10 \
 --lr 1e-5 \
 --model_name eva02_base_patch14_448 \
---use_class_weights \
---notes "Training with class weights continuing from previous checkpoint 10-epoch" \
---load_ckpt "ckpt/eva02_base_patch14_448/use_class_weights/best_model_eva02_base_patch14_448_3class_weighted_epoch10.pth"
+--csv_path "/home/khoa/workspace/Project/isbi2025_ps3c/gaeun/train_removed_fp_fn.csv" \
+--notes "Training with removed FPs and FNs"
 
 
 ### ------------------------------------------- EfficientNet-B0 ------------------------------------------- ###

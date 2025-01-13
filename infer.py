@@ -233,6 +233,7 @@ def main():
         if args.extract_mode == 'pooled':
             ### Set the classifier to Identity
             ### https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/eva.py#L553
+            ### Will be normalized by the layer norm
             model.model.reset_classifier(0)
 
             ### The extract function is the forward function
@@ -242,12 +243,14 @@ def main():
         ### In this code (https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/eva.py#L688),
         ### the global pooling operation skips the classifier token. Therefore, we need to extract
         ### features from the last layer that includes the classifier token.
+        ### Is not normalized by the layer norm
         elif args.extract_mode == 'pooled_all':
             def extract_func(x):
                 features = model.model.forward_features(x) ### (batch_size, token_len, num_features)
                 return features.mean(dim=1) ### (batch_size, num_features)
 
         ### Extract features from the classifier token
+        ### Is not normalized by the layer norm
         elif args.extract_mode == 'classifier_token':
             def extract_func(x):
                 features = model.model.forward_features(x) ### (batch_size, token_len, num_features)
