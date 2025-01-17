@@ -118,6 +118,7 @@ Extract modes:
 ## Ideas
 - [x] **Idea 1:** Remove confusing data by identifying the file names of False Positives (FP) and False Negatives (FN) and excluding them from the training set.
 - [x] **Idea 2:** Since classifying unhealthy cases is key to success, assign a higher loss weight to misclassifications of unhealthy cases.
+- [ ] **Idea 3:** Create the mask to prune the extracted features (e.g., Eva02 or SAE's features). Then train the classifier with the pruned features.
 
 ## Docker
 Khoa's environment is available in [docker/khoa/khoa.md](docker/khoa/khoa.md).
