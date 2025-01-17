@@ -109,14 +109,14 @@ Extract modes:
 - [x] Add batch size for prediction script
 - [x] Use [WandB](https://wandb.ai/site) to log training and prediction
 - [x] Binary classification strategy: Rubbish vs (Healthy/Unhealthy) -> Healthy vs Unhealthy
+- [x] Training with the training set based on csv files (Idea 1)
 - [x] Add class weights to the loss function (Idea 2)
 - [x] Add SAE strategy: training and extracting SAE features from the extracted features (Classifier token, Pooled, Pooled_all)
 - [ ] Add Validation set / Cross-validation
 - [ ] Docker
 
 ## Ideas
-- [ ] **Idea 1:** Remove confusing data by identifying the file names of False Positives (FP) and False Negatives (FN) and excluding them from the training set.
-
+- [x] **Idea 1:** Remove confusing data by identifying the file names of False Positives (FP) and False Negatives (FN) and excluding them from the training set.
 - [x] **Idea 2:** Since classifying unhealthy cases is key to success, assign a higher loss weight to misclassifications of unhealthy cases.
 
 ## Docker
