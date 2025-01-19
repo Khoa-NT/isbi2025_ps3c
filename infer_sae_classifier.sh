@@ -48,16 +48,18 @@ pooled_allx4_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epo
 ### Select the dictionary
 data_path="pooledx4_paths"
 
-### Train classifier on SAE vectors (3-class, with class weights)
-python train_sae_classifier.py \
---csv_path_train "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv" \
---sae_train_csv $(eval echo \${$data_path[train]}) \
+
+# --load_ckpt "ckpt/sae_classifier/train_sparse_4x_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/best_model_sae_classifier_3class.pth" \
+
+
+
+### Run inference
+python infer_sae_classifier.py \
+--csv_path "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv" \
+--sae_csv $(eval echo \${$data_path[test]}) \
+--load_ckpt "ckpt/sae_classifier/train_sparse_4x_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/use_class_weights/best_model_sae_classifier_3class_weighted.pth" \
 --merge_bothcells \
 --hidden_dims 1024 512 256 \
 --dropout 0.5 \
 --batch_size 512 \
---num_workers 32 \
---num_epochs 500 \
---learning_rate 1e-3 \
---notes "Training classifier on SAE pooledx4_paths vectors with class weights" \
---use_class_weights
+--num_workers 32 
