@@ -186,7 +186,7 @@ def main():
         project="isbi2025-ps3c",
         name=f"SAE_features_{Path(args.csv_path_train).stem}",
         notes=f"Training SAE on features from {Path(args.csv_path_train).name}",
-        tags=["SAE"],
+        tags=["SAE", f"hidden_dim_{args.hidden_dim_multiplier:.0f}x"],
         config=args,
         config_exclude_keys=["notes"]
     )
@@ -270,7 +270,7 @@ def main():
     
     ### Create output directory
     train_path = Path(args.csv_path_train)
-    output_dir = train_path.parent / f"sae_features_{Path(args.csv_path_train).stem}"
+    output_dir = train_path.parent / f"sae_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}"
     output_dir.mkdir(exist_ok=True)
     
     ### Extract and save training features
@@ -281,7 +281,7 @@ def main():
         columns=[f'sparse_feature_{i}' for i in range(hidden_dim)]
     )
     train_sparse_df['image_name'] = train_df['image_name']
-    train_output_path = output_dir / f"train_sparse_features_{Path(args.csv_path_train).stem}.csv"
+    train_output_path = output_dir / f"train_sparse_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}.csv"
     train_sparse_df.to_csv(train_output_path, index=False)
     print(f"\nSaved training sparse features to {train_output_path}")
     
@@ -293,12 +293,12 @@ def main():
         columns=[f'sparse_feature_{i}' for i in range(hidden_dim)]
     )
     test_sparse_df['image_name'] = test_df['image_name']
-    test_output_path = output_dir / f"test_sparse_features_{Path(args.csv_path_test).stem}.csv"
+    test_output_path = output_dir / f"test_sparse_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_test).stem}.csv"
     test_sparse_df.to_csv(test_output_path, index=False)
     print(f"Saved test sparse features to {test_output_path}")
     
     ### Save model
-    model_path = output_dir / f"sae_model_{Path(args.csv_path_train).stem}.pth"
+    model_path = output_dir / f"sae_model_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}.pth"
     torch.save(model.state_dict(), model_path)
     print(f"Saved model to {model_path}")
     

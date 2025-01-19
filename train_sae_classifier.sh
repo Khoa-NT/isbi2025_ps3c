@@ -1,0 +1,61 @@
+### Dictionary of SAE feature paths
+### This script contains paths to different SAE feature files for training and testing
+### The paths are organized in dictionaries based on:
+### - Feature type (classifier_token, pooled, pooled_all)
+### - Compression ratio (x2 or x4)
+
+### How to use:
+### 1. Access a specific path using the dictionary name and key:
+###    Example: ${classifier_tokenx2_paths[train]} - Gets training path for classifier token features with 2x compression
+###    Example: ${pooledx4_paths[test]} - Gets test path for pooled features with 4x compression
+
+### 2. Available dictionaries:
+###    - classifier_tokenx2_paths: Classifier token features with 2x compression
+###    - pooledx2_paths: Pooled features with 2x compression  
+###    - pooled_allx2_paths: All pooled features with 2x compression
+###    - classifier_tokenx4_paths: Classifier token features with 4x compression
+###    - pooledx4_paths: Pooled features with 4x compression
+###    - pooled_allx4_paths: All pooled features with 4x compression
+
+### 3. Each dictionary has two keys:
+###    - train: Path to training features
+###    - test: Path to test features
+
+declare -A classifier_tokenx2_paths
+classifier_tokenx2_paths[train]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_features_train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_sparse_features_train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+classifier_tokenx2_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_features_train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_sparse_features_test_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+declare -A pooledx2_paths
+pooledx2_paths[train]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_sparse_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+pooledx2_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_sparse_features_test_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+declare -A pooled_allx2_paths
+pooled_allx2_paths[train]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_features_train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_sparse_features_train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+pooled_allx2_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_features_train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_sparse_features_test_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+declare -A classifier_tokenx4_paths
+classifier_tokenx4_paths[train]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_4x_features_train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_sparse_4x_features_train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+classifier_tokenx4_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_4x_features_train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_sparse_4x_features_test_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+declare -A pooledx4_paths
+pooledx4_paths[train]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_4x_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_sparse_4x_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+pooledx4_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_4x_features_train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_sparse_4x_features_test_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+declare -A pooled_allx4_paths
+pooled_allx4_paths[train]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_4x_features_train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/train_sparse_4x_features_train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+pooled_allx4_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch_best_model_eva02_base_patch14_448_3class/sae_4x_features_train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/test_sparse_4x_features_test_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class.csv"
+
+### Select the dictionary
+data_path="pooledx4_paths"
+
+### Train classifier on SAE vectors (3-class, with class weights)
+python train_sae_classifier.py \
+--csv_path_train "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv" \
+--sae_train_csv $(eval echo \${$data_path[train]}) \
+--merge_bothcells \
+--hidden_dims 1024 512 256 \
+--dropout 0.5 \
+--batch_size 256 \
+--num_epochs 100 \
+--learning_rate 1e-3 \
+--notes "Training classifier on SAE vectors"
