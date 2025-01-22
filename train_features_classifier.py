@@ -1,4 +1,4 @@
-"""Training script for classifying SAE vectors"""
+"""Training script for classifying extracted features with feature masking"""
 
 import argparse
 import pandas as pd
@@ -18,18 +18,25 @@ from utils.pytorch_utils import seed_worker, SeedAll
 
 
 ###------ Dataset Class -------###
-class SAEVectorDataset(Dataset):
-    """Dataset class for SAE vectors
+class FeatureDataset(Dataset):
+    """Dataset class for extracted features with masking
     
     Args:
         csv_path (str): Path to original CSV file containing image paths and labels
-        sae_csv_path (str): Path to CSV file containing SAE vectors
+        features_csv_path (str): Path to CSV file containing extracted features
+        masking_path (str): Path to CSV file containing feature masking
+        masking_method (str): Method to use for feature masking
         merge_bothcells (bool): Whether to merge bothcells class with unhealthy
     """
-    def __init__(self, csv_path, sae_csv_path, merge_bothcells=True):
+    def __init__(self, csv_path, features_csv_path, masking_path, masking_method, merge_bothcells=True):
         ### Read CSV files
         self.df = pd.read_csv(csv_path)
-        self.sae_df = pd.read_csv(sae_csv_path)
+        self.features_df = pd.read_csv(features_csv_path)
+        
+        ### Read masking file and get feature mask
+        df_masking = pd.read_csv(masking_path)
+        masking_method = masking_method.replace('_', ' ')
+        self.feature_mask = df_masking[df_masking["Model"] == masking_method].iloc[0, 1:].values.astype(bool)
         
         ### Create class mapping
         if merge_bothcells:
@@ -47,9 +54,10 @@ class SAEVectorDataset(Dataset):
                 'rubbish': 3
             }
         
-        ### Get feature columns from SAE features
-        self.feature_cols = [col for col in self.sae_df.columns if col.startswith('sparse_feature_')]
-        self.features = self.sae_df[self.feature_cols].values
+        ### Get feature columns from extracted features (excluding image_name)
+        self.feature_cols = self.features_df.columns[1:].tolist()
+        ### Apply feature masking
+        self.masked_features = self.features_df[self.feature_cols].values[:, self.feature_mask]
         
         ### Get labels from original CSV and convert using class map
         self.labels = [self.class_map[label] for label in self.df['label'].values]
@@ -67,17 +75,17 @@ class SAEVectorDataset(Dataset):
     
 
     def __getitem__(self, idx):
-        features = torch.FloatTensor(self.features[idx])
+        features = torch.FloatTensor(self.masked_features[idx])
         label = self.labels[idx]
         return features, label
 
 
 ###------ Model Class -------###
-class SAEClassifier(nn.Module):
-    """Simple MLP classifier for SAE vectors
+class FeatureClassifier(nn.Module):
+    """MLP classifier for extracted features
     
     Args:
-        input_dim (int): Input dimension (number of SAE features)
+        input_dim (int): Input dimension (number of masked features)
         hidden_dims (list): List of hidden layer dimensions
         num_classes (int): Number of output classes
         dropout (float): Dropout probability
@@ -144,8 +152,8 @@ def train_epoch(model, dataloader, criterion, optimizer, device, merge_bothcells
     target_names = ['healthy', 'unhealthy', 'rubbish'] if merge_bothcells else \
                     ['healthy', 'unhealthy', 'bothcells', 'rubbish']
     report = classification_report(all_labels, all_predictions, 
-                                target_names=target_names,
-                                digits=5)
+                                   target_names=target_names,
+                                   digits=5)
     
     return running_loss/len(dataloader), acc, report
 
@@ -156,8 +164,13 @@ def main():
     parser.add_argument('--csv_path_train', type=str,
                        default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv',
                        help='Path to original training CSV file with labels')
-    parser.add_argument('--sae_train_csv', type=str, required=True,
-                       help='Path to training CSV file with SAE vectors')
+    parser.add_argument('--features_train_csv', type=str, required=True,
+                       help='Path to training CSV file with extracted features')
+    parser.add_argument('--masking_path', type=str, required=True,
+                       help='Path to CSV file containing feature masking')
+    parser.add_argument('--masking_method', type=str, required=True,
+                       choices=['Gradient_Boosting', 'Random_Forest', 'Logistic_Regression'],
+                       help='Method to use for feature masking')
     parser.add_argument('--merge_bothcells', action='store_true',
                        help='Merge bothcells class with unhealthy')
     parser.add_argument('--hidden_dims', type=int, nargs='+', default=[512, 256],
@@ -178,10 +191,11 @@ def main():
     wandb_run = wandb.init(
         entity="GUGC_ISBI2025_PS3C",
         project="isbi2025-ps3c",
-        name=f"SAE_classifier_{'3class' if args.merge_bothcells else '4class'}"
+        name=f"Feature_classifier_{args.masking_method}_{'3class' if args.merge_bothcells else '4class'}"
              f"{'_weighted' if args.use_class_weights else ''}",
         notes=args.notes,
-        tags=['SAE_classifier', 
+        tags=['Feature_classifier', 
+              args.masking_method,
               '3class' if args.merge_bothcells else '4class',
               'weighted' if args.use_class_weights else 'unweighted'],
         config=args,
@@ -196,14 +210,16 @@ def main():
     ### Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    ### Create datasets with both original and SAE CSVs
-    train_dataset = SAEVectorDataset(
+    ### Create dataset
+    train_dataset = FeatureDataset(
         csv_path=args.csv_path_train,
-        sae_csv_path=args.sae_train_csv,
+        features_csv_path=args.features_train_csv,
+        masking_path=args.masking_path,
+        masking_method=args.masking_method,
         merge_bothcells=args.merge_bothcells
     )
     
-    ### Create dataloaders
+    ### Create dataloader
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
@@ -214,9 +230,9 @@ def main():
     )
     
     ### Create model
-    input_dim = len(train_dataset.feature_cols)
+    input_dim = train_dataset.masked_features.shape[1]  ### Number of masked features
     num_classes = 3 if args.merge_bothcells else 4
-    model = SAEClassifier(
+    model = FeatureClassifier(
         input_dim=input_dim,
         hidden_dims=args.hidden_dims,
         num_classes=num_classes,
@@ -238,12 +254,14 @@ def main():
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, factor=0.5)
     
     ### Create checkpoint directory
-    ckpt_dir = Path(f"ckpt/sae_classifier/{Path(args.sae_train_csv).stem}")
+    ckpt_dir = Path(f"ckpt/feature_classifier/{Path(args.features_train_csv).stem}/{args.masking_method}")
     if args.use_class_weights:
         ckpt_dir = ckpt_dir / "use_class_weights"
     ckpt_dir.mkdir(parents=True, exist_ok=True)
     
     ### Training loop
+    print(f"\nTraining {args.masking_method} on {args.features_train_csv}")
+    print(f"Input dimension: {input_dim}")
     best_loss = float('inf')
     for epoch in range(args.num_epochs):
         print(f'\nEpoch {epoch+1}/{args.num_epochs}')
@@ -269,7 +287,7 @@ def main():
         ### Save best model
         if train_loss < best_loss:
             best_loss = train_loss
-            model_name = f"best_model_sae_classifier_{'3class' if args.merge_bothcells else '4class'}"
+            model_name = f"best_model_feature_classifier_{args.masking_method}_{'3class' if args.merge_bothcells else '4class'}"
             if args.use_class_weights:
                 model_name += "_weighted"
             model_name += ".pth"

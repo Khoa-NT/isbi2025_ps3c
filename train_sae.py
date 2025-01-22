@@ -1,6 +1,7 @@
 """Train Sparse Autoencoder on extracted features"""
 
 import argparse
+import sys
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -92,14 +93,42 @@ class SparseAutoencoderTrainer:
         l1_coefficient (float): L1 regularization coefficient. Defaults to 1e-3
         device (str): Device to use. Defaults to "cuda" if available
     """
-    def __init__(self, model, learning_rate=1e-3, l1_coefficient=1e-3,
+    def __init__(self, model, 
+                 learning_rate=1e-3, 
+                 l1_coefficient=1e-3,
+                 decorr_coefficient=0.1,
+                 entropy_coefficient=0.1,
+                 num_epochs=None,
+                 steps_per_epoch=None,
                  device="cuda" if torch.cuda.is_available() else "cpu"):
         self.model = model.to(device)
         self.device = device
+
         self.optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+        # self.optimizer = optim.RAdam(model.parameters(), lr=learning_rate)
+
+        # self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', patience=20, factor=0.9)  ### patience=5, factor=0.5
+        self.scheduler = optim.lr_scheduler.OneCycleLR(self.optimizer, max_lr=learning_rate, steps_per_epoch=steps_per_epoch, epochs=num_epochs, pct_start=0.1)
+        # self.scheduler = optim.lr_scheduler.CosineAnnealingLR(self.optimizer, T_max=num_epochs//30) ### Step in one epoch
+
         self.l1_coefficient = l1_coefficient
+        self.decorr_coefficient = decorr_coefficient
+        self.entropy_coefficient = entropy_coefficient
         self.mse_loss = nn.MSELoss()
+
+    def l1_loss(self, activations):
+        return torch.mean(torch.abs(activations)) * self.l1_coefficient
     
+    def feature_decorrelation_loss(self, activations):
+        ### Calculate correlation matrix
+        corr = torch.corrcoef(activations.T)
+        ### Penalize high correlations (excluding diagonal)
+        mask = ~torch.eye(corr.shape[0], dtype=bool)
+        return torch.mean(torch.abs(corr[mask])) * self.decorr_coefficient
+    
+    def entropy_loss(self, activations):
+        probs = torch.softmax(activations, dim=1)
+        return -torch.mean(torch.sum(probs * torch.log(probs + 1e-10), dim=1)) * self.entropy_coefficient
 
     def train_step(self, batch):
         """Single training step"""
@@ -114,9 +143,11 @@ class SparseAutoencoderTrainer:
         
         ### Calculate losses
         reconstruction_loss = self.mse_loss(reconstruction, batch)
-        l1_loss = torch.mean(torch.abs(encoded))
-        total_loss = reconstruction_loss + self.l1_coefficient * l1_loss
-        
+        l1_loss = self.l1_loss(encoded)
+        decorr_loss = self.feature_decorrelation_loss(encoded) if self.decorr_coefficient > 0 else torch.tensor(0.0)
+        entropy_loss = self.entropy_loss(encoded) if self.entropy_coefficient > 0 else torch.tensor(0.0)
+        total_loss = reconstruction_loss + l1_loss + decorr_loss + entropy_loss
+
         ### Backward pass
         total_loss.backward()
         self.optimizer.step()
@@ -125,6 +156,8 @@ class SparseAutoencoderTrainer:
             "total_loss": total_loss.item(),
             "reconstruction_loss": reconstruction_loss.item(),
             "l1_loss": l1_loss.item(),
+            "decorr_loss": decorr_loss.item(),
+            "entropy_loss": entropy_loss.item(),
             "mean_activation": encoded.mean().item(),
             "sparsity": (encoded == 0).float().mean().item()
         }
@@ -137,8 +170,21 @@ class SparseAutoencoderTrainer:
             stats = self.train_step(batch)
             epoch_stats.append(stats)
             
+            ### Step OneCycleLR scheduler after each batch
+            if isinstance(self.scheduler, optim.lr_scheduler.OneCycleLR):
+                self.scheduler.step()
+
         ### Average stats across batches
-        return {k: np.mean([s[k] for s in epoch_stats]) for k in epoch_stats[0].keys()}
+        avg_stats = {k: np.mean([s[k] for s in epoch_stats]) for k in epoch_stats[0].keys()}
+        
+        ### Step other schedulers once per epoch
+        if self.scheduler is not None and not isinstance(self.scheduler, optim.lr_scheduler.OneCycleLR):
+            if isinstance(self.scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+                self.scheduler.step(avg_stats['total_loss'])
+            else:
+                self.scheduler.step()
+        
+        return avg_stats
 
 
 ###------ Feature Extraction Function -------###
@@ -171,10 +217,14 @@ def main():
                         help='Path to test CSV file with extracted features')
     parser.add_argument('--hidden_dim_multiplier', type=float, default=2.0,
                         help='Multiplier for hidden dimension relative to input dimension')
+    parser.add_argument('--activation', type=str, default="relu",
+                        help='Activation function: [relu, gelu]. Defaults to "relu"')
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--num_epochs', type=int, default=10)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--l1_coefficient', type=float, default=1e-3)
+    parser.add_argument('--decorr_coefficient', type=float, default=0.1)
+    parser.add_argument('--entropy_coefficient', type=float, default=0.1)
     parser.add_argument('--random_seed', type=int, default=42)
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--notes', type=str, default='')
@@ -186,15 +236,18 @@ def main():
         project="isbi2025-ps3c",
         name=f"SAE_features_{Path(args.csv_path_train).stem}",
         notes=f"Training SAE on features from {Path(args.csv_path_train).name}",
-        tags=["SAE", f"hidden_dim_{args.hidden_dim_multiplier:.0f}x"],
+        tags=["SAE", f"hidden_dim_{args.hidden_dim_multiplier:.0f}x", f"activation_{args.activation}"],
         config=args,
         config_exclude_keys=["notes"]
     )
     wandb_run.define_metric("train/total_loss", summary="min", step_metric="epoch")
     wandb_run.define_metric("train/reconstruction_loss", summary="min", step_metric="epoch")
     wandb_run.define_metric("train/l1_loss", summary="min", step_metric="epoch")
+    wandb_run.define_metric("train/decorr_loss", summary="min", step_metric="epoch")
+    wandb_run.define_metric("train/entropy_loss", summary="min", step_metric="epoch")
     wandb_run.define_metric("train/mean_activation", summary="mean", step_metric="epoch")
     wandb_run.define_metric("train/sparsity", summary="max", step_metric="epoch")
+
 
     ### Set random seed
     rng = SeedAll(args.random_seed)
@@ -233,46 +286,74 @@ def main():
     ### Initialize model and trainer
     model = SparseAutoencoder(
         input_dim=input_dim,
-        hidden_dim=hidden_dim
+        hidden_dim=hidden_dim,
+        activation=args.activation
     )
     
     trainer = SparseAutoencoderTrainer(
         model=model,
         learning_rate=args.learning_rate,
         l1_coefficient=args.l1_coefficient,
+        decorr_coefficient=args.decorr_coefficient,
+        entropy_coefficient=args.entropy_coefficient,
+        num_epochs=args.num_epochs,
+        steps_per_epoch=len(train_loader),
         device=device
     )
+
+    ### Create output directory
+    train_path = Path(args.csv_path_train)
+    output_dir = train_path.parent / f"sae_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}" / f"activation_{args.activation}"
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     ### Training loop
     print(f"\nTraining SAE with {input_dim} input features -> {hidden_dim} hidden features")
-    for epoch in range(args.num_epochs):
-        print(f"\nEpoch {epoch + 1}/{args.num_epochs}")
+    best_loss = float('inf')
+    best_epoch = 0
+    for epoch in range(1, args.num_epochs + 1):
+        print(f"\nEpoch {epoch}/{args.num_epochs}")
         stats = trainer.train_epoch(train_loader)
-        
-        print(f"Total Loss: {stats['total_loss']:.4f}")
-        print(f"Reconstruction Loss: {stats['reconstruction_loss']:.4f}")
-        print(f"L1 Loss: {stats['l1_loss']:.4f}")
-        print(f"Mean Activation: {stats['mean_activation']:.4f}")
-        print(f"Sparsity: {stats['sparsity']:.4f}")
         
         ### Log to wandb
         wandb_run.log({
-            "epoch": epoch + 1,
+            "epoch": epoch,
+            "learning_rate": trainer.scheduler.get_last_lr()[0],
             "train/total_loss": stats['total_loss'],
             "train/reconstruction_loss": stats['reconstruction_loss'],
             "train/l1_loss": stats['l1_loss'],
+            "train/decorr_loss": stats['decorr_loss'],
+            "train/entropy_loss": stats['entropy_loss'],
             "train/mean_activation": stats['mean_activation'],
             "train/sparsity": stats['sparsity']
         })
-    
+
+        ### Save best model
+        if stats['total_loss'] < best_loss:
+            best_loss = stats['total_loss']
+            best_epoch = epoch
+            model_path = output_dir / f"sae_model_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}.pth"
+            torch.save(model.state_dict(), model_path)
+            
+        ### Print stats
+        print(f"Total Loss: {stats['total_loss']:.4f}\t\tBest Loss: {best_loss:.4f} at Epoch {best_epoch}")
+        print(f"Reconstruction Loss: {stats['reconstruction_loss']:.4f}")
+        print(f"L1 Loss: {stats['l1_loss']:.4f}")
+        print(f"Decorrelation Loss: {stats['decorr_loss']:.4f}")
+        print(f"Entropy Loss: {stats['entropy_loss']:.4f}")
+        print(f"Mean Activation: {stats['mean_activation']:.4f}")
+        print(f"Sparsity: {stats['sparsity']:.4f}")
+
+        ### Exit system if total loss is NaN
+        if np.isnan(stats['total_loss']):
+            print("Total loss is NaN. Exiting system.")
+            wandb_run.finish()
+            sys.exit(1)
+
+
     ### Extract and save sparse features
-    print("\nExtracting sparse features...")
-    
-    ### Create output directory
-    train_path = Path(args.csv_path_train)
-    output_dir = train_path.parent / f"sae_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}"
-    output_dir.mkdir(exist_ok=True)
-    
+    print(f"\nExtracting sparse features from best model with loss {best_loss:.4f} at epoch {best_epoch}...")
+    model.load_state_dict(torch.load(model_path))
+        
     ### Extract and save training features
     train_sparse_features = extract_sparse_features(model, train_loader, device)
     train_df = pd.read_csv(args.csv_path_train)
@@ -296,11 +377,6 @@ def main():
     test_output_path = output_dir / f"test_sparse_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_test).stem}.csv"
     test_sparse_df.to_csv(test_output_path, index=False)
     print(f"Saved test sparse features to {test_output_path}")
-    
-    ### Save model
-    model_path = output_dir / f"sae_model_{args.hidden_dim_multiplier:.0f}x_features_{Path(args.csv_path_train).stem}.pth"
-    torch.save(model.state_dict(), model_path)
-    print(f"Saved model to {model_path}")
     
     ### Close wandb run
     wandb_run.finish()

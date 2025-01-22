@@ -42,6 +42,20 @@ Will train the model and save the best model to `ckpt/` folder.
 Check `train_binary.sh` for example usage.
 
 
+### Features Classification
+
+Using the extracted features to train the classifier.
+
+#### Training
+```bash
+./train_features_classifier.sh
+```
+
+#### Inference
+```bash
+./infer_features_classifier.sh
+```
+
 ## Submission
 ### Multi-class classification
 ```bash
@@ -88,6 +102,7 @@ Extract modes:
 + eva02_base_patch14_448: Features from the model overfit on the training set.
 + PreTrained_eva02_base_patch14_448: Features from the ImageNet pretrained model.
 
+
 ### Binary Classification Result
 | Name | Model 1 | Model 2 | Model 3 |
 |:----:|:-------:|:-------:|:-------:|
@@ -112,13 +127,14 @@ Extract modes:
 - [x] Training with the training set based on csv files (Idea 1)
 - [x] Add class weights to the loss function (Idea 2)
 - [x] Add SAE strategy: training and extracting SAE features from the extracted features (Classifier token, Pooled, Pooled_all)
+- [x] Add training and predicting with features (Idea 3)
 - [ ] Add Validation set / Cross-validation
 - [ ] Docker
 
 ## Ideas
 - [x] **Idea 1:** Remove confusing data by identifying the file names of False Positives (FP) and False Negatives (FN) and excluding them from the training set.
 - [x] **Idea 2:** Since classifying unhealthy cases is key to success, assign a higher loss weight to misclassifications of unhealthy cases.
-- [ ] **Idea 3:** Create the mask to prune the extracted features (e.g., Eva02 or SAE's features). Then train the classifier with the pruned features.
+- [x] **Idea 3:** Create the mask to prune the extracted features (e.g., Eva02 or SAE's features). Then train the classifier with the pruned features.
 
 ## Docker
 Khoa's environment is available in [docker/khoa/khoa.md](docker/khoa/khoa.md).

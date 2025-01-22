@@ -1,4 +1,4 @@
-"""Inference script for SAE Classifier"""
+"""Inference script for Feature Classifier"""
 
 import argparse
 import pandas as pd
@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
-from train_sae_classifier import SAEVectorDataset, SAEClassifier
+from train_features_classifier import FeatureClassifier
 from utils.pytorch_utils import seed_worker, SeedAll
 
 
@@ -53,7 +53,7 @@ def prediction(model, dataloader, df, idx_to_class, device, ckpt_path):
     print(f"\nPredictions saved to {pred_path}")
 
     ### Save submission format
-    submission_path = Path("submission") / "sae_classifier"
+    submission_path = Path("submission") / "feature_classifier"
     submission_path.mkdir(parents=True, exist_ok=True)
     submission_path = submission_path / f"predictions_{ckpt_path.stem}.csv"
 
@@ -66,20 +66,28 @@ def prediction(model, dataloader, df, idx_to_class, device, ckpt_path):
 
 
 ###------ Inference Dataset Class -------###
-class InferenceSAEDataset(Dataset):
-    """Dataset class for SAE inference
+class InferenceFeatureDataset(Dataset):
+    """Dataset class for feature inference with masking
     
     Args:
         df (pd.DataFrame): DataFrame containing image paths
-        sae_df (pd.DataFrame): DataFrame containing SAE features
+        features_df (pd.DataFrame): DataFrame containing extracted features
+        masking_path (str): Path to CSV file containing feature masking
+        masking_method (str): Method to use for feature masking
     """
-    def __init__(self, df, sae_df):
+    def __init__(self, df, features_df, masking_path, masking_method):
         self.df = df
-        self.sae_df = sae_df
+        self.features_df = features_df
         
-        ### Get feature columns
-        self.feature_cols = [col for col in self.sae_df.columns if col.startswith('sparse_feature_')]
-        self.features = self.sae_df[self.feature_cols].values
+        ### Read masking file and get feature mask
+        df_masking = pd.read_csv(masking_path)
+        masking_method = masking_method.replace('_', ' ')
+        self.feature_mask = df_masking[df_masking["Model"] == masking_method].iloc[0, 1:].values.astype(bool)
+        
+        ### Get feature columns from extracted features (excluding image_name)
+        self.feature_cols = self.features_df.columns[1:].tolist()
+        ### Apply feature masking
+        self.masked_features = self.features_df[self.feature_cols].values[:, self.feature_mask]
     
 
     def __len__(self):
@@ -87,7 +95,7 @@ class InferenceSAEDataset(Dataset):
     
 
     def __getitem__(self, idx):
-        features = torch.FloatTensor(self.features[idx])
+        features = torch.FloatTensor(self.masked_features[idx])
         return features, idx
 
 
@@ -97,8 +105,13 @@ def main():
     parser.add_argument('--csv_path', type=str,
                        default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv',
                        help='Path to CSV file with image paths')
-    parser.add_argument('--sae_csv', type=str, required=True,
-                       help='Path to CSV file with SAE features')
+    parser.add_argument('--features_csv', type=str, required=True,
+                       help='Path to CSV file with extracted features')
+    parser.add_argument('--masking_path', type=str, required=True,
+                       help='Path to CSV file containing feature masking')
+    parser.add_argument('--masking_method', type=str, required=True,
+                       choices=['Gradient_Boosting', 'Random_Forest', 'Logistic_Regression'],
+                       help='Method to use for feature masking')
     parser.add_argument('--load_ckpt', type=str, required=True,
                        help='Path to model checkpoint')
     parser.add_argument('--merge_bothcells', action='store_true',
@@ -126,10 +139,15 @@ def main():
     
     ### Read dataset CSV files
     df = pd.read_csv(args.csv_path)
-    sae_df = pd.read_csv(args.sae_csv)
+    features_df = pd.read_csv(args.features_csv)
     
     ### Create dataset and dataloader
-    dataset = InferenceSAEDataset(df, sae_df)
+    dataset = InferenceFeatureDataset(
+        df=df, 
+        features_df=features_df,
+        masking_path=args.masking_path,
+        masking_method=args.masking_method
+    )
     
     dataloader = DataLoader(
         dataset,
@@ -143,8 +161,8 @@ def main():
 
     ### Create and load model
     num_classes = 3 if args.merge_bothcells else 4
-    model = SAEClassifier(
-        input_dim=len(dataset.feature_cols),
+    model = FeatureClassifier(
+        input_dim=dataset.masked_features.shape[1],  ### Number of masked features
         hidden_dims=args.hidden_dims,
         num_classes=num_classes,
         dropout=args.dropout
