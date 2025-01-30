@@ -37,11 +37,21 @@
 # --load_ckpt ckpt/eva02_base_patch14_448/binary_healthy_vs_unhealthy+bothcells/best_model_eva02_base_patch14_448_binary_healthy_vs_unhealthy+bothcells.pth \
 # --batch_size 512 --num_workers 32
 
-### Stage 3: Classify rubbish vs healthy
+# ### Stage 3: Classify rubbish vs healthy
+# python infer_binary.py \
+# --dataset test \
+# --class_0 rubbish \
+# --class_1 healthy \
+# --model_name eva02_base_patch14_448 \
+# --load_ckpt ckpt/eva02_base_patch14_448/binary_rubbish_vs_healthy/best_model_eva02_base_patch14_448_binary_rubbish_vs_healthy.pth \
+# --batch_size 512 --num_workers 32
+
+
+### Stage 4: Classify unhealthy vs bothcells
 python infer_binary.py \
 --dataset test \
---class_0 rubbish \
---class_1 healthy \
+--class_0 unhealthy \
+--class_1 bothcells \
 --model_name eva02_base_patch14_448 \
---load_ckpt ckpt/eva02_base_patch14_448/binary_rubbish_vs_healthy/best_model_eva02_base_patch14_448_binary_rubbish_vs_healthy.pth \
+--load_ckpt ckpt/eva02_base_patch14_448/binary_unhealthy_vs_bothcells/best_model_eva02_base_patch14_448_binary_unhealthy_vs_bothcells.pth \
 --batch_size 512 --num_workers 32

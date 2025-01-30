@@ -232,8 +232,9 @@ def main():
     
     ### Training loop
     best_loss = float('inf')
-    for epoch in range(args.num_epochs):
-        print(f'\nEpoch {epoch+1}/{args.num_epochs}')
+    best_epoch = 0
+    for epoch in range(1, args.num_epochs+1):
+        print(f'\nEpoch {epoch}/{args.num_epochs}')
         
         train_loss, train_acc, train_report = train_epoch(
             model, train_loader, criterion, optimizer, device,
@@ -246,9 +247,10 @@ def main():
         print(train_report)
         
         wandb_run.log({
-            "epoch": epoch + 1,
+            "epoch": epoch,
             "train/loss": train_loss,
             "train/acc": train_acc,
+            "learning_rate": optimizer.param_groups[0]['lr']
         })
         
         scheduler.step(train_loss)
@@ -256,18 +258,19 @@ def main():
         ### Save best model
         if train_loss < best_loss:
             best_loss = train_loss
+            best_epoch = epoch
             torch.save(model.state_dict(), ckpt_path)
-            print(f'Saved best model as {ckpt_path} at epoch {epoch+1}')
+            print(f'Saved best model as {ckpt_path} at epoch {best_epoch}')
 
         ### Save each epoch model for analysis
         if args.export_each_epoch:
             model_name = f"model_{epoch+1}.pth"
             temp_ckpt_path = ckpt_dir_path / model_name
             torch.save(model.state_dict(), temp_ckpt_path)
-            print(f'Saved model as {temp_ckpt_path} at epoch {epoch+1}')
+            print(f'Saved model as {temp_ckpt_path} at epoch {epoch}')
     
     print("\nTraining completed!")
-
+    print(f"Best model with loss {best_loss:.4f} saved at epoch {best_epoch} at {ckpt_path}")
 
 if __name__ == '__main__':
     main() 

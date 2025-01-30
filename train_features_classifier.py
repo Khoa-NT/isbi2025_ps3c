@@ -36,7 +36,12 @@ class FeatureDataset(Dataset):
         ### Read masking file and get feature mask
         df_masking = pd.read_csv(masking_path)
         masking_method = masking_method.replace('_', ' ')
-        self.feature_mask = df_masking[df_masking["Model"] == masking_method].iloc[0, 1:].values.astype(bool)
+        if masking_method == "None":
+            ### No masking
+            self.feature_mask = np.ones(self.features_df.shape[1]-1, dtype=bool)
+        else:
+            ### Masking
+            self.feature_mask = df_masking[df_masking["Model"] == masking_method].iloc[0, 1:].values.astype(bool)
         
         ### Create class mapping
         if merge_bothcells:
@@ -169,7 +174,7 @@ def main():
     parser.add_argument('--masking_path', type=str, required=True,
                        help='Path to CSV file containing feature masking')
     parser.add_argument('--masking_method', type=str, required=True,
-                       choices=['Gradient_Boosting', 'Random_Forest', 'Logistic_Regression'],
+                       choices=['Gradient_Boosting', 'Random_Forest', 'Logistic_Regression', 'None'],
                        help='Method to use for feature masking')
     parser.add_argument('--merge_bothcells', action='store_true',
                        help='Merge bothcells class with unhealthy')

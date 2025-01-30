@@ -3,6 +3,7 @@
 import argparse
 import pandas as pd
 from pathlib import Path
+import numpy as np
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -79,13 +80,18 @@ class InferenceFeatureDataset(Dataset):
         self.df = df
         self.features_df = features_df
         
-        ### Read masking file and get feature mask
-        df_masking = pd.read_csv(masking_path)
-        masking_method = masking_method.replace('_', ' ')
-        self.feature_mask = df_masking[df_masking["Model"] == masking_method].iloc[0, 1:].values.astype(bool)
-        
         ### Get feature columns from extracted features (excluding image_name)
         self.feature_cols = self.features_df.columns[1:].tolist()
+        
+        if masking_method == "None":
+            ### No masking
+            self.feature_mask = np.ones(len(self.feature_cols), dtype=bool)
+        else:
+            ### Read masking file and get feature mask
+            df_masking = pd.read_csv(masking_path)
+            masking_method = masking_method.replace('_', ' ')
+            self.feature_mask = df_masking[df_masking["Model"] == masking_method].iloc[0, 1:].values.astype(bool)
+        
         ### Apply feature masking
         self.masked_features = self.features_df[self.feature_cols].values[:, self.feature_mask]
     
@@ -110,7 +116,7 @@ def main():
     parser.add_argument('--masking_path', type=str, required=True,
                        help='Path to CSV file containing feature masking')
     parser.add_argument('--masking_method', type=str, required=True,
-                       choices=['Gradient_Boosting', 'Random_Forest', 'Logistic_Regression'],
+                       choices=['Gradient_Boosting', 'Random_Forest', 'Logistic_Regression', 'None'],
                        help='Method to use for feature masking')
     parser.add_argument('--load_ckpt', type=str, required=True,
                        help='Path to model checkpoint')

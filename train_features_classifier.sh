@@ -40,7 +40,8 @@ pooled_all_paths[test]="extracted_features/eva02_base_patch14_448/backup_20Epoch
 
 ### Loop through all feature types and masking methods
 for data_path in "classifier_token_paths" "pooled_paths" "pooled_all_paths"; do
-    for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression"; do
+    # for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression"; do
+    for masking_method in "None"; do
 
         echo "Training $masking_method on $data_path features without class weights"
 

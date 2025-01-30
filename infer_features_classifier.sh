@@ -8,6 +8,8 @@ classifier_token_paths[Random_Forest_unweighted]="ckpt/feature_classifier/train_
 classifier_token_paths[Random_Forest_weighted]="ckpt/feature_classifier/train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Random_Forest/use_class_weights/best_model_feature_classifier_Random_Forest_3class_weighted.pth"
 classifier_token_paths[Logistic_Regression_unweighted]="ckpt/feature_classifier/train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Logistic_Regression/best_model_feature_classifier_Logistic_Regression_3class.pth"
 classifier_token_paths[Logistic_Regression_weighted]="ckpt/feature_classifier/train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Logistic_Regression/use_class_weights/best_model_feature_classifier_Logistic_Regression_3class_weighted.pth"
+classifier_token_paths[None_unweighted]="ckpt/feature_classifier/train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/None/best_model_feature_classifier_None_3class.pth"
+classifier_token_paths[None_weighted]="ckpt/feature_classifier/train_classifier_token_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/None/use_class_weights/best_model_feature_classifier_None_3class_weighted.pth"
 
 
 declare -A pooled_paths
@@ -19,6 +21,8 @@ pooled_paths[Random_Forest_unweighted]="ckpt/feature_classifier/train_pooled_fea
 pooled_paths[Random_Forest_weighted]="ckpt/feature_classifier/train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Random_Forest/use_class_weights/best_model_feature_classifier_Random_Forest_3class_weighted.pth"
 pooled_paths[Logistic_Regression_unweighted]="ckpt/feature_classifier/train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Logistic_Regression/best_model_feature_classifier_Logistic_Regression_3class.pth"
 pooled_paths[Logistic_Regression_weighted]="ckpt/feature_classifier/train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Logistic_Regression/use_class_weights/best_model_feature_classifier_Logistic_Regression_3class_weighted.pth"
+pooled_paths[None_unweighted]="ckpt/feature_classifier/train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/None/best_model_feature_classifier_None_3class.pth"
+pooled_paths[None_weighted]="ckpt/feature_classifier/train_pooled_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/None/use_class_weights/best_model_feature_classifier_None_3class_weighted.pth"
 
 
 declare -A pooled_all_paths
@@ -30,6 +34,8 @@ pooled_all_paths[Random_Forest_unweighted]="ckpt/feature_classifier/train_pooled
 pooled_all_paths[Random_Forest_weighted]="ckpt/feature_classifier/train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Random_Forest/use_class_weights/best_model_feature_classifier_Random_Forest_3class_weighted.pth"
 pooled_all_paths[Logistic_Regression_unweighted]="ckpt/feature_classifier/train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Logistic_Regression/best_model_feature_classifier_Logistic_Regression_3class.pth"
 pooled_all_paths[Logistic_Regression_weighted]="ckpt/feature_classifier/train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/Logistic_Regression/use_class_weights/best_model_feature_classifier_Logistic_Regression_3class_weighted.pth"
+pooled_all_paths[None_unweighted]="ckpt/feature_classifier/train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/None/best_model_feature_classifier_None_3class.pth"
+pooled_all_paths[None_weighted]="ckpt/feature_classifier/train_pooled_all_features_ckpt_backup_20Epoch_best_model_eva02_base_patch14_448_3class/None/use_class_weights/best_model_feature_classifier_None_3class_weighted.pth"
 
 
 ### --------------------------------------------------------------------- Manual --------------------------------------------------------------------- ###
@@ -71,7 +77,8 @@ pooled_all_paths[Logistic_Regression_weighted]="ckpt/feature_classifier/train_po
 ### There is a problem in the submission directory that the prediction is ovelapped because we didn't distinguish between `data_path`
 ### We have to copy the result and move to the specific folder. For example, we run a case of `data_path` = `classifier_token_paths`, then we move all the prediction to `submission/feature_classifier/classifier_token_paths`
 for data_path in "classifier_token_paths" "pooled_paths" "pooled_all_paths"; do
-    for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression"; do
+    # for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression" "None"; do
+    for masking_method in "None"; do
         for loss_type in "weighted" "unweighted"; do
             
             ### Create the key for the dictionary
