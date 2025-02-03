@@ -1,5 +1,8 @@
-# isbi2025_ps3c
-Pap Smear Cell Classification Challenge (PS3C) 
+# Pap Smear Cell Classification Challenge (PS3C)
+
+This is the repository for the  [PS3C challenge](https://www.kaggle.com/competitions/pap-smear-cell-classification-challenge/overview) of team **Khoa_NT**.
+
+![Overview](assets/Overview_khoa.png)
 
 
 ## Data
