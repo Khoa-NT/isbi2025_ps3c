@@ -59,7 +59,7 @@ def prediction(model, dataloader, df, idx_to_class, label_col, device,
         print(f"\nPredictions saved to {pred_path=}")
     else:
         ### Save predictions with specific columns (no capitalization)
-        submission_path = Path("submission")
+        submission_path = Path("submission") / dataset_type
         submission_path.mkdir(parents=True, exist_ok=True)
         submission_path = submission_path / f"predictions_{ckpt_path.stem}.csv"
         df.to_csv(submission_path, index=False, columns=['image_name', 'label'])
@@ -119,8 +119,8 @@ class InferenceDataset(Dataset):
 def main():
     ### Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, choices=['train', 'test'], default='test',
-                        help='Choose between training or test dataset (default: test)')
+    parser.add_argument('--dataset', type=str, choices=['train', 'test', 'eval'], default='test',
+                        help='Choose between training or test or eval (eval is PS3C Final Evaluation) dataset (default: test)')
     parser.add_argument('--infer_mode', type=str, choices=['prediction', 'extract_features'],
                         default='prediction', help='Inference mode (default: prediction)')
     parser.add_argument('--extract_mode', type=str, choices=['pooled', 'pooled_all', 'classifier_token'], 
@@ -133,10 +133,14 @@ def main():
                         default='dataset/isbi2025-ps3c-train-dataset')
     parser.add_argument('--data_dir_test', type=str, 
                         default='dataset/isbi2025-ps3c-test-dataset')
+    parser.add_argument('--data_dir_eval', type=str,
+                        default='dataset/isbi2025-ps3c-eval-dataset')
     parser.add_argument('--csv_path_train', type=str,
                         default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-train-dataset.csv')
     parser.add_argument('--csv_path_test', type=str,
                         default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv')
+    parser.add_argument('--csv_path_eval', type=str,
+                        default='dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-eval-dataset.csv')
     parser.add_argument('--model_name', type=str, default='efficientnet_b0')
     parser.add_argument('--load_ckpt', type=str, default='')
     parser.add_argument('--merge_bothcells', action='store_true')
@@ -159,7 +163,7 @@ def main():
         ckpt_path = Path(args.load_ckpt)
         print(f"Loading checkpoint from {ckpt_path=}")
     else:
-        if args.dataset == 'test' and args.infer_mode == 'prediction':
+        if args.dataset in ['test', 'eval'] and args.infer_mode == 'prediction':
             raise ValueError("Checkpoint must be provided for test set prediction")
         print(f"Using pretrained model {args.model_name=}")
         pretrained_dir = Path("ckpt") / args.model_name
@@ -184,8 +188,17 @@ def main():
         idx_to_class = {0: 'healthy', 1: 'unhealthy', 2: 'bothcells', 3: 'rubbish'}
     
     ### Read dataset CSV file
-    data_dir = Path(args.data_dir_train if args.dataset == 'train' else args.data_dir_test)
-    csv_path = args.csv_path_train if args.dataset == 'train' else args.csv_path_test
+    if args.dataset == 'train':
+        data_dir = Path(args.data_dir_train)
+        csv_path = args.csv_path_train
+    elif args.dataset == 'eval':
+        data_dir = Path(args.data_dir_eval)  ### For evaluation, using the test dataset directory
+        csv_path = args.csv_path_eval
+    elif args.dataset == 'test':
+        data_dir = Path(args.data_dir_test)
+        csv_path = args.csv_path_test
+    else:
+        raise ValueError(f"Invalid dataset: {args.dataset}")
     df = pd.read_csv(csv_path)
     
     ### Create probability columns only for prediction mode
