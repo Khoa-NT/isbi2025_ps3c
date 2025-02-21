@@ -121,6 +121,11 @@ Extract modes:
 | 3 + 2             | 0.85025     |  |
 | 3                 | 0.84127     | 🤔 Get 0.84 with only submitting rubbish & healthy (without unhealthy & bothcells) |
 
+### Importance-based Feature Selection
+```bash
+./importance_based_feature_selection/mask.sh
+```
+Will create a masking table based on the feature importances of machine learning models, including Logistic Regression, Gradient Boosting, and Random Forest. This masking table will then be used to perform importance-based feature selection.
 
 ## TODO
 - [x] Extracting features from the model
