@@ -59,6 +59,10 @@ Using the extracted features to train the classifier.
 ./infer_features_classifier.sh
 ```
 
+There are two types of outputs:
++ `predictions_<csv_path>.csv`: Predictions with probabilities for each class, saved to the folder containing the ckpt file.
++ `submission_<ckpt_path>.csv`: Predictions for submission, saved to `submission/feature_classifier/` folder.
+
 ## Submission
 ### Multi-class classification
 ```bash

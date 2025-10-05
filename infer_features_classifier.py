@@ -14,7 +14,7 @@ from utils.pytorch_utils import seed_worker, SeedAll
 
 
 ###------ Prediction Function -------###
-def prediction(model, dataloader, df, idx_to_class, device, ckpt_path):
+def prediction(model, dataloader, df, idx_to_class, device, ckpt_path, pred_name='predictions.csv'):
     """Run prediction on the dataset and export results
     
     Args:
@@ -24,6 +24,7 @@ def prediction(model, dataloader, df, idx_to_class, device, ckpt_path):
         idx_to_class (dict): Mapping from index to class names
         device (torch.device): Device to run prediction on
         ckpt_path (Path): Path to checkpoint
+        pred_name (str): Name of the prediction file
     """
     ### Create prediction columns if they don't exist
     df['pred_label'] = ''
@@ -49,7 +50,7 @@ def prediction(model, dataloader, df, idx_to_class, device, ckpt_path):
 
     ### ------------------------------- Export predictions ------------------------------- ###
     ### Save predictions with all columns to ckpt_path
-    pred_path = ckpt_path.parent / "predictions.csv"
+    pred_path = ckpt_path.parent / pred_name
     df.to_csv(pred_path, index=False)
     print(f"\nPredictions saved to {pred_path}")
 
@@ -181,6 +182,11 @@ def main():
     model = model.to(device)
     model.eval()
 
+    ### Create prediction name
+    ### For example, "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv"
+    ### -> pred_name = "predictions_isbi2025-ps3c-test-dataset.csv"
+    pred_name = f"predictions_{Path(args.csv_path).stem}.csv"
+
     ### Run prediction
     prediction(
         model=model,
@@ -188,7 +194,8 @@ def main():
         df=df,
         idx_to_class=idx_to_class,
         device=device,
-        ckpt_path=ckpt_path
+        ckpt_path=ckpt_path,
+        pred_name=pred_name
     )
 
 

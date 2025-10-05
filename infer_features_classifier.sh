@@ -76,42 +76,55 @@ pooled_all_paths[None_weighted]="ckpt/feature_classifier/train_pooled_all_featur
 ### --------------------------------------------------------------------- For-loop --------------------------------------------------------------------- ###
 
 
-# ### Loop through all feature types and masking methods
-# ### There is a problem in the submission directory that the prediction is ovelapped because we didn't distinguish between `data_path`
-# ### We have to copy the result and move to the specific folder. For example, we run a case of `data_path` = `classifier_token_paths`, then we move all the prediction to `submission/feature_classifier/classifier_token_paths`
-# for data_path in "classifier_token_paths" "pooled_paths" "pooled_all_paths"; do
-#     # for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression" "None"; do
-#     for masking_method in "None"; do
-#         for loss_type in "weighted" "unweighted"; do
+### Loop through all feature types and masking methods
+### There is a problem in the submission directory that the prediction is ovelapped because we didn't distinguish between `data_path`
+### We have to copy the result and move to the specific folder. For example, we run a case of `data_path` = `classifier_token_paths`, then we move all the prediction to `submission/feature_classifier/classifier_token_paths`
+for data_path in "classifier_token_paths" "pooled_paths" "pooled_all_paths"; do
+    for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression" "None"; do
+    # for masking_method in "None"; do
+        for loss_type in "weighted" "unweighted"; do
             
-#             ### Create the key for the dictionary
-#             selected_ckpt=${masking_method}_${loss_type}
+            ### Create the key for the dictionary
+            selected_ckpt=${masking_method}_${loss_type}
             
-#             echo "Running inference with $masking_method on $data_path features with $loss_type loss"
-            
-#             ### Run inference
-#             python infer_features_classifier.py \
-#             --csv_path "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv" \
-#             --features_csv $(eval echo \${$data_path[test]}) \
-#             --masking_path "/home/khoa/workspace/Project/isbi2025_ps3c/gaeun/masking.csv" \
-#             --masking_method $masking_method \
-#             --load_ckpt $(eval echo \${${data_path}[${selected_ckpt}]}) \
-#             --merge_bothcells \
-#             --hidden_dims 1024 512 256 \
-#             --dropout 0.5 \
-#             --batch_size 512 \
-#             --num_workers 32
-            
-#         done
-#     done
+            echo "Running inference with $masking_method on $data_path features with $loss_type loss"
 
-#     ### Delete and create the prediction folder
-#     rm -rf submission/feature_classifier/test/$data_path 
-#     mkdir -p submission/feature_classifier/test/$data_path
+            ### Measure running time and run inference
+            start_time=$(date +%s)
+            ### Run inference
+            python infer_features_classifier.py \
+            --csv_path "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-test-dataset.csv" \
+            --features_csv $(eval echo \${$data_path[test]}) \
+            --masking_path "/home/khoa/workspace/Project/isbi2025_ps3c/gaeun/masking.csv" \
+            --masking_method $masking_method \
+            --load_ckpt $(eval echo \${${data_path}[${selected_ckpt}]}) \
+            --merge_bothcells \
+            --hidden_dims 1024 512 256 \
+            --dropout 0.5 \
+            --batch_size 512 \
+            --num_workers 32
+            end_time=$(date +%s)
+            
+            ### Calculate and display execution time
+            execution_time=$((end_time - start_time))
+            ### Convert execution time to hh:mm:ss format
+            hours=$((execution_time / 3600))
+            minutes=$(((execution_time % 3600) / 60))
+            seconds=$((execution_time % 60))
+            formatted_time=$(printf "%02d:%02d:%02d" $hours $minutes $seconds)
+            
+            echo "Completed inference with $masking_method on $data_path features with $loss_type loss - Execution time: ${formatted_time}"
+            
+        done
+    done
 
-#     ### Move the prediction to the specific folder
-#     mv submission/feature_classifier/predictions_*.csv submission/feature_classifier/test/$data_path/
-# done
+    ### Delete and create the prediction folder
+    rm -rf submission/feature_classifier/test/$data_path 
+    mkdir -p submission/feature_classifier/test/$data_path
+
+    ### Move the prediction to the specific folder
+    mv submission/feature_classifier/predictions_*.csv submission/feature_classifier/test/$data_path/
+done
 
 
 
@@ -125,12 +138,13 @@ for data_path in "classifier_token_paths" "pooled_paths" "pooled_all_paths"; do
     for masking_method in "Gradient_Boosting" "Random_Forest" "Logistic_Regression" "None"; do
         for loss_type in "weighted" "unweighted"; do
             
-            ### Create the key for the dictionar3y
+            ### Create the key for the dictionary
             selected_ckpt=${masking_method}_${loss_type}
             
             echo "Running inference with $masking_method on $data_path features with $loss_type loss"
             
-            ### Run inference
+            ### Measure running time and run inference
+            start_time=$(date +%s)
             python infer_features_classifier.py \
             --csv_path "dataset/pap-smear-cell-classification-challenge/isbi2025-ps3c-eval-dataset.csv" \
             --features_csv $(eval echo \${$data_path[eval]}) \
@@ -142,6 +156,17 @@ for data_path in "classifier_token_paths" "pooled_paths" "pooled_all_paths"; do
             --dropout 0.5 \
             --batch_size 512 \
             --num_workers 32
+            end_time=$(date +%s)
+            
+            ### Calculate and display execution time
+            execution_time=$((end_time - start_time))
+            ### Convert execution time to hh:mm:ss format
+            hours=$((execution_time / 3600))
+            minutes=$(((execution_time % 3600) / 60))
+            seconds=$((execution_time % 60))
+            formatted_time=$(printf "%02d:%02d:%02d" $hours $minutes $seconds)
+            
+            echo "Completed inference with $masking_method on $data_path features with $loss_type loss - Execution time: ${formatted_time}"
             
         done
     done
