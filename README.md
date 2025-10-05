@@ -2,8 +2,9 @@
 
 This is the repository for the paper ["Towards Improved Cervical Cancer Screening: Vision Transformer-Based Classification and Interpretability"](https://arxiv.org/abs/2504.21340) at [PS3C challenge](https://www.kaggle.com/competitions/pap-smear-cell-classification-challenge/overview) of team **Khoa_NT**.
 
+---
 ![Overview](assets/Overview_khoa.png)
-
+---
 
 ## Data
 Download the data follow this [instructions](https://www.kaggle.com/competitions/pap-smear-cell-classification-challenge/data) and put it in the `data/` folder.
